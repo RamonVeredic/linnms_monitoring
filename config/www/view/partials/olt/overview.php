@@ -1,0 +1,66 @@
+<?php
+
+$ovData = is_array($oltView ?? null) ? $oltView : [];
+$ovId = (int)($ovData['id'] ?? 0);
+$ovIdentity = is_array($ovData['identity'] ?? null) ? $ovData['identity'] : [];
+$ovCapabilities = is_array($ovData['capabilities'] ?? null) ? $ovData['capabilities'] : [];
+$ovActions = is_array($ovData['actions'] ?? null) ? $ovData['actions'] : [];
+$ovStats = is_array($ovData['stats'] ?? null) ? $ovData['stats'] : [];
+$ovStatus = (string)($ovIdentity['status'] ?? '');
+$ovStatusClass = $ovStatus === 'online' ? 'is-up' : ($ovStatus === 'offline' ? 'is-down' : 'is-unknown');
+$ovUptime = $ovIdentity['uptime_seconds'] ?? null;
+$ovTemperature = trim((string)($ovIdentity['temperature_text'] ?? ''));
+if ($ovTemperature === '' || strcasecmp($ovTemperature, 'N/A') === 0) $ovTemperature = '0.00 °C';
+$ovRenderActions = static function () use ($ovId, $ovActions, $ovData, $ovCapabilities, $oltDetail): void {
+    ?>
+    <div class="olt-actions">
+        <form method="post" class="inline-form" data-tip="<?= empty($ovCapabilities['refresh_detail']) ? 'Pembaruan data tidak tersedia' : 'Perbarui data OLT ini' ?>" data-tip-pos="bottom"<?= !empty($ovActions['refresh_async']) ? ' data-olt-refresh' : '' ?>
+            data-olt-ref="<?= h((string)($ovData['resource_ref'] ?? '')) ?>"
+            data-olt-refresh-target="olt-pon-config">
+            <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+            <input type="hidden" name="action" value="<?= h((string)($ovActions['refresh_action'] ?? '')) ?>">
+            <input type="hidden" name="olt_row_id" value="<?= $ovId ?>">
+            <button class="button secondary" type="submit" data-olt-refresh-button aria-label="Perbarui data OLT ini"<?= empty($ovCapabilities['refresh_detail']) ? ' disabled' : '' ?>><i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>
+        </form>
+        <?php if (trim((string)($ovActions['edit_url'] ?? '')) !== ''): ?>
+        <span data-tip="Ubah pengaturan perangkat" data-tip-pos="bottom"><a class="button secondary" href="<?= h((string)$ovActions['edit_url']) ?>" aria-label="Ubah pengaturan perangkat"><i class="bi bi-pencil-square" aria-hidden="true"></i></a></span>
+        <?php endif; ?>
+        <?php $terminalSupported = !empty(($ovData['capabilities'] ?? [])['terminal']); ?>
+        <span data-tip="<?= $terminalSupported ? 'Buka terminal OLT' : 'Terminal belum tersedia untuk perangkat ini' ?>" data-tip-pos="bottom"><button class="button secondary olt-terminal-button" type="button" data-olt-terminal-open
+            aria-label="<?= $terminalSupported ? 'Buka terminal OLT' : 'Terminal belum tersedia untuk perangkat ini' ?>"
+            <?= $terminalSupported ? '' : 'disabled' ?>><i class="bi bi-terminal" aria-hidden="true"></i></button></span>
+    </div>
+    <?php
+};
+?>
+    <section class="panel olt-overview">
+        <div class="olt-overview-top">
+            <div class="olt-identity">
+                <div class="device-detail-icon"><i class="bi bi-pc-horizontal" aria-hidden="true"></i></div>
+                <div>
+                    <div class="olt-title">
+                        <div class="olt-title-name">
+                        <h2><?= h((string)($ovIdentity['name'] ?? '')) ?></h2>
+                        <?php if (trim((string)($ovIdentity['status_label'] ?? '')) !== '' && strcasecmp((string)$ovIdentity['status_label'], '-') !== 0): ?>
+                        <?php endif; ?> - <span><?= h(display_model_chars($ovIdentity['model'] ?? '-', '-')) ?></span>
+                        <span class="olt-temperature"><i class="bi bi-thermometer-half" aria-hidden="true"></i> <?= h($ovTemperature) ?></span>
+                        </div>
+                        <?php $ovRenderActions(); ?>
+                    </div>
+                    <p class="f-md"></p>
+                    <p> <i class="bi bi-clock-history" aria-hidden="true"></i>  <span class="me-2" <?= is_numeric($ovUptime) ? ' data-device-uptime-clock data-uptime-seconds="' . (int)$ovUptime . '"' : '' ?>><?= h((string)($ovIdentity['uptime_text'] ?? 'N/A')) ?></span></p>
+                    <p><i class="bi bi-calendar3" aria-hidden="true"></i> 
+                    <span class="me-2"><?= h((string)($ovIdentity['current_time'] ?? '-')) ?></span></p>
+                </div>
+            </div>
+        </div>
+        <div class="olt-summary">
+            <?php foreach ($ovStats as $ovLabel => $ovValue): ?>
+                <div>
+                    <span <?= $ovLabel === 'Fan' ? ' data-olt-fan-count' : '' ?>>
+                        <?= h((string)$ovValue) ?></span>
+                    <span><?= h((string)$ovLabel) ?></span></div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?= (string)($ovData['overview_extra'] ?? '') ?>

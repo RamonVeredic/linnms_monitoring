@@ -1,0 +1,1 @@
+(()=>{const e=document.body,t=1e3*Number(e.dataset.serviceExpiresAt);if(!Number.isFinite(t)||t<=0)return;const i=new URL(e.dataset.expiredPage||"/expired.html",window.location.href),n=()=>{const e=t-Date.now();e<=0?window.location.replace(i.toString()):window.setTimeout(n,Math.min(e,2147483647))};n()})();
