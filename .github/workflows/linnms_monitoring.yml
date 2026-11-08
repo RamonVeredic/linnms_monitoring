@@ -51,7 +51,7 @@ jobs:
             exit 1
           fi
           release_commit="$(git rev-parse --verify "${GITHUB_REF}^{commit}")"
-          if ! git merge-base --is-ancestor "$release_commit" refs/remotes/origin/main; then
+          if ! git merge-base --is-ancestor "$release_commit" refs/remotes/origin/nms-main; then
             echo 'Release tag must point to a commit reachable from LINNMS/main' >&2
             exit 1
           fi
