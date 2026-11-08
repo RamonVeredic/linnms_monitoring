@@ -12,7 +12,7 @@ RUN cd /build/loader \
 FROM lscr.io/linuxserver/nginx:1.30.4
 LABEL org.opencontainers.image.title="LINNMS" \
       org.opencontainers.image.description="LINNMS" \
-      org.opencontainers.image.source="https://github.com/RamonVeredic/LINNMS"
+      org.opencontainers.image.source="https://github.com/RamonVeredic/linnms_monitoring"
 
 RUN apk add --no-cache \
       inetutils-telnet net-snmp-tools php85-pdo_mysql php85-snmp php85-sodium libsodium
