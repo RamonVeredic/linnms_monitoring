@@ -105,21 +105,21 @@ jobs:
 
       - name: Check source access
         env:
-          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
-          INPUT_REPO: RamonVeredic/LINNMS-Staging
-          MODULE_REPO: ${{ secrets.LINNMS_MODULE_REPO }}
+          LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
+          TARGET_INPUT: RamonVeredic/linnms_deplov
+          LINNMS_MODUL: ${{ secrets.LINNMS_LINNMS_MODUL }}
         run: |
           set -eu
-          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_READ_TOKEN' >&2; exit 1; }
-          [[ "$INPUT_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
-          [[ "$MODULE_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing runtime repository' >&2; exit 1; }
+          test -n "$LINNMS_TOKEN" || { echo 'Missing LINNMS_MONITORING_TOKEN_GIT' >&2; exit 1; }
+          [[ "$TARGET_INPUT" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input' >&2; exit 1; }
+          [[ "$LINNMS_MODUL" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing runtime' >&2; exit 1; }
 
       - name: Fetch release source
         id: source
         env:
-          READ_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
-          INPUT_REPO: RamonVeredic/LINNMS-Staging
-          MODULE_REPO: ${{ secrets.LINNMS_MODULE_REPO }}
+          LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
+          TARGET_INPUT: RamonVeredic/linnms_deplov
+          LINNMS_MODUL: ${{ secrets.LINNMS_LINNMS_MODUL }}
           SOURCE_MODE: ${{ steps.release.outputs.source_mode }}
           SOURCE_TAG: ${{ steps.release.outputs.source_tag }}
         shell: bash
@@ -128,7 +128,7 @@ jobs:
           work="$RUNNER_TEMP/linnms"
           mkdir -p "$work"
           git -c advice.detachedHead=false clone -q --depth 1 --branch master \
-            "https://x-access-token:${READ_TOKEN}@github.com/${INPUT_REPO}.git" "$work/source"
+            "https://x-access-token:${LINNMS_TOKEN}@github.com/${TARGET_INPUT}.git" "$work/source"
           if [[ "$SOURCE_MODE" == "tag" ]]; then
             git -C "$work/source" fetch -q --unshallow origin master
             git -C "$work/source" fetch -q origin "refs/tags/${SOURCE_TAG}:refs/tags/${SOURCE_TAG}"
@@ -143,7 +143,7 @@ jobs:
           # Manual master releases do not require an SHA input.
           resolved_sha="$(git -C "$work/source" rev-parse HEAD)"
           git -c advice.detachedHead=false clone -q --depth 1 --branch main \
-            "https://x-access-token:${READ_TOKEN}@github.com/${MODULE_REPO}.git" "$work/pq"
+            "https://x-access-token:${LINNMS_TOKEN}@github.com/${LINNMS_MODUL}.git" "$work/pq"
           pq_sha="$(git -C "$work/pq" rev-parse HEAD)"
           echo "sha=$resolved_sha" >> "$GITHUB_OUTPUT"
           echo "Build revision: $resolved_sha"
