@@ -3,9 +3,9 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-MASTER = (ROOT / ".github/workflows/master.yml").read_text(encoding="utf-8")
+MASTER = (ROOT / ".github/workflows/input-sync.yml").read_text(encoding="utf-8")
 FRONTEND_EXPORT = (ROOT / "scripts/master.py").read_text(encoding="utf-8")
-BUILD = (ROOT / ".github/workflows/linnms.yml").read_text(encoding="utf-8")
+BUILD = (ROOT / ".github/workflows/linnms_monitoring.yml").read_text(encoding="utf-8")
 
 
 class MasterContractTest(unittest.TestCase):
@@ -28,8 +28,8 @@ class MasterContractTest(unittest.TestCase):
         self.assertIn('"vendor"', FRONTEND_EXPORT)
 
     def test_source_commit_and_dispatch_unchanged(self):
-        self.assertIn("name: master", MASTER)
-        self.assertIn("run-name: master", MASTER)
+        self.assertIn("name: input-sync", MASTER)
+        self.assertIn("run-name: input-sync", MASTER)
         self.assertIn("jobs:\n  master:\n    name: master", MASTER)
         self.assertIn("workflow_dispatch:", MASTER)
         self.assertIn("repository_dispatch:", MASTER)
@@ -45,13 +45,13 @@ class MasterContractTest(unittest.TestCase):
         self.assertNotIn('Source: LINNMS-Staging@', MASTER)
         self.assertIn("git diff --cached --quiet", MASTER)
         self.assertIn("permissions:\n  contents: write", MASTER)
-        self.assertIn("secrets.LINNMS_READ_TOKEN", MASTER)
+        self.assertIn("secrets.LINNMS_MONITORING_TOKEN_GIT", MASTER)
 
     def test_image_still_reads_staging_master_directly(self):
-        self.assertIn("github.com/${INPUT_REPO}.git", BUILD)
-        self.assertIn("INPUT_REPO: RamonVeredic/LINNMS-Staging", MASTER)
-        self.assertIn("INPUT_REPO: RamonVeredic/LINNMS-Staging", BUILD)
-        self.assertNotIn("secrets.LINNMS_INPUT_REPO", MASTER + BUILD)
+        self.assertIn("github.com/${TARGET_INPUT}.git", BUILD)
+        self.assertIn("TARGET_INPUT: RamonVeredic/linnms_deplov", MASTER)
+        self.assertIn("TARGET_INPUT: RamonVeredic/linnms_deplov", BUILD)
+        self.assertIn("LINNMS_MODUL: RamonVeredic/linnms-protect", BUILD)
         self.assertIn("clone -q --depth 1 --branch master", BUILD)
         self.assertIn('python3 scripts/release.py "$work/source" "$work/plain"', BUILD)
         self.assertIn("uses: docker/build-push-action@v6", BUILD)
