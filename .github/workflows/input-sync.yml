@@ -1,5 +1,5 @@
-name: master
-run-name: master
+name: input-sync
+run-name: input-sync
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Test frontend export
+      - name: Test input-sync
         run: |
           set -euo pipefail
           python3 -m unittest discover -v -s tests -p 'test_frontend_sync.py'
@@ -32,18 +32,18 @@ jobs:
 
       - name: Read source
         env:
-          READ_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
-          INPUT_REPO: RamonVeredic/LINNMS-Staging
+          LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
+          TARGET_INPUT: RamonVeredic/linnms_deplov
           SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_MONITORING_TOKEN_GIT' >&2; exit 1; }
-          [[ "$INPUT_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
+          test -n "$LINNMS_TOKEN" || { echo 'Missing LINNMS_MONITORING_TOKEN_GIT' >&2; exit 1; }
+          [[ "$TARGET_INPUT" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
           work="$RUNNER_TEMP/linnms"
           mkdir -p "$work"
           git clone -q --depth 1 --branch master \
-            "https://x-access-token:${READ_TOKEN}@github.com/${INPUT_REPO}.git" \
+            "https://x-access-token:${LINNMS_TOKEN}@github.com/${TARGET_INPUT}.git" \
             "$work/source"
           if [[ -n "$SOURCE_SHA" ]]; then
             [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid source revision' >&2; exit 1; }
