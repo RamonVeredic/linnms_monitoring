@@ -32,13 +32,13 @@ jobs:
 
       - name: Read source
         env:
-          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
+          READ_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
           INPUT_REPO: RamonVeredic/LINNMS-Staging
           SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_READ_TOKEN' >&2; exit 1; }
+          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_MONITORING_TOKEN_GIT' >&2; exit 1; }
           [[ "$INPUT_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
           work="$RUNNER_TEMP/linnms"
           mkdir -p "$work"
