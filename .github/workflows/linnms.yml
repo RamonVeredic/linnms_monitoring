@@ -1,0 +1,224 @@
+name: LINNMS
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'V*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag (e.g. v1.2.3)"
+        required: true
+        type: string
+      source_mode:
+        description: "Sumber master hasil merge atau tag rilis vX.Y.Z"
+        type: choice
+        required: true
+        default: master
+        options:
+          - master
+          - tag
+      source_tag:
+        description: "Tag sumber rilis, misalnya v1.3.0 (hanya mode tag)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: linnms-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: LINNMS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release files
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release tag
+        if: ${{ github.ref_type == 'tag' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^[vV][0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid Release tag format: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          release_commit="$(git rev-parse --verify "${GITHUB_REF}^{commit}")"
+          if ! git merge-base --is-ancestor "$release_commit" refs/remotes/origin/main; then
+            echo 'Release tag must point to a commit reachable from LINNMS/main' >&2
+            exit 1
+          fi
+
+      - name: Validate version and source
+        id: release
+        env:
+          RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.version || 'v0.0.0') }}
+          SOURCE_MODE: ${{ github.ref_type == 'tag' && 'tag' || (inputs.source_mode || 'master') }}
+          SOURCE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.source_mode == 'tag' && inputs.source_tag || '') }}
+          TAGGED_BUILD: ${{ github.ref_type == 'tag' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_VERSION" =~ ^[vV][0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Release version must be vMAJOR.MINOR.PATCH (for example v1.2.3)' >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_MODE" != 'master' && "$SOURCE_MODE" != 'tag' ]]; then
+            echo 'Invalid source mode: expected master or tag' >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_MODE" == 'tag' && -z "$SOURCE_TAG" ]]; then
+            echo 'source_mode=tag requires source_tag' >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_MODE" == 'master' && -n "$SOURCE_TAG" ]]; then
+            echo 'source_tag is only supported in tag mode' >&2
+            exit 1
+          fi
+          if [[ -n "$SOURCE_TAG" ]]; then
+            if [[ ! "$SOURCE_TAG" =~ ^[vV][0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+               [[ "${SOURCE_TAG:1}" != "${RELEASE_VERSION:1}" ]]; then
+              echo 'Source tag must match the release version' >&2
+              exit 1
+            fi
+            if [[ "$TAGGED_BUILD" == "true" && "$SOURCE_TAG" != "$RELEASE_VERSION" ]]; then
+              echo 'Automatic release tag must match the promoted source release tag' >&2
+              exit 1
+            fi
+          fi
+          echo "version=${RELEASE_VERSION:1}" >> "$GITHUB_OUTPUT"
+          echo "source_mode=$SOURCE_MODE" >> "$GITHUB_OUTPUT"
+          echo "source_tag=$SOURCE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Test release rules
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q scripts tests
+          python3 -m unittest discover -v -s tests -p '*.py'
+
+      - name: Check source access
+        env:
+          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
+          INPUT_REPO: RamonVeredic/LINNMS-Staging
+          MODULE_REPO: ${{ secrets.LINNMS_MODULE_REPO }}
+        run: |
+          set -eu
+          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_READ_TOKEN' >&2; exit 1; }
+          [[ "$INPUT_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
+          [[ "$MODULE_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing runtime repository' >&2; exit 1; }
+
+      - name: Fetch release source
+        id: source
+        env:
+          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
+          INPUT_REPO: RamonVeredic/LINNMS-Staging
+          MODULE_REPO: ${{ secrets.LINNMS_MODULE_REPO }}
+          SOURCE_MODE: ${{ steps.release.outputs.source_mode }}
+          SOURCE_TAG: ${{ steps.release.outputs.source_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/linnms"
+          mkdir -p "$work"
+          git -c advice.detachedHead=false clone -q --depth 1 --branch master \
+            "https://x-access-token:${READ_TOKEN}@github.com/${INPUT_REPO}.git" "$work/source"
+          if [[ "$SOURCE_MODE" == "tag" ]]; then
+            git -C "$work/source" fetch -q --unshallow origin master
+            git -C "$work/source" fetch -q origin "refs/tags/${SOURCE_TAG}:refs/tags/${SOURCE_TAG}"
+            pinned_sha="$(git -C "$work/source" rev-parse --verify "refs/tags/${SOURCE_TAG}^{commit}")"
+            if ! git -C "$work/source" merge-base --is-ancestor "$pinned_sha" origin/master; then
+              echo 'Refusing release: source vX.Y.Z tag is not reachable from master' >&2
+              exit 1
+            fi
+            git -C "$work/source" checkout -q --detach "$pinned_sha"
+          fi
+          # Resolve the actual checked-out snapshot exactly once for build metadata.
+          # Manual master releases do not require an SHA input.
+          resolved_sha="$(git -C "$work/source" rev-parse HEAD)"
+          git -c advice.detachedHead=false clone -q --depth 1 --branch main \
+            "https://x-access-token:${READ_TOKEN}@github.com/${MODULE_REPO}.git" "$work/pq"
+          pq_sha="$(git -C "$work/pq" rev-parse HEAD)"
+          echo "sha=$resolved_sha" >> "$GITHUB_OUTPUT"
+          echo "Build revision: $resolved_sha"
+          echo "Runtime revision: $pq_sha"
+          {
+            echo "### LINNMS Release"
+            printf -- "- Release ref: %s\n" "${SOURCE_TAG:-master}"
+            printf -- "- Build revision: %s\n" "$resolved_sha"
+            printf -- "- Runtime revision: %s\n" "$pq_sha"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Test PHP runtime (amd64, arm64)
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/linnms/pq"
+          docker buildx build --platform linux/amd64 -f docker/Dockerfile .
+          docker buildx build --platform linux/arm64 -f docker/Dockerfile .
+
+      - name: Prepare build input
+        run: |
+          set -eu
+          work="$RUNNER_TEMP/linnms"
+          umask 077
+          openssl rand -hex 32 > "$work/input.dat"
+          test "$(wc -c < "$work/input.dat")" -eq 65
+          chmod 600 "$work/input.dat"
+
+      - name: Prepare release bundle
+        run: |
+          set -eu
+          work="$RUNNER_TEMP/linnms"
+          umask 077
+          python3 scripts/release.py "$work/source" "$work/plain"
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$work:/work" php:8.5-cli-alpine sh -euc '
+              find /work/plain -type f -name "*.php" -print0 |
+              xargs -0 -r -n 1 php -l >/dev/null
+            '
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$work:/work" \
+            -e BUILD_INPUT=/work/input.dat \
+            php:8.5-cli-alpine php /work/pq/encoder/encode.php \
+            /work/plain /work/encoded
+          rm -rf "$work/plain"
+          mkdir -p "$work/context/bundle" "$work/context/pq"
+          cp -a "$work/encoded/." "$work/context/bundle/"
+          cp -a "$work/pq/loader" "$work/context/pq/"
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$work:/work" \
+            php:8.5-cli-alpine php /work/pq/encoder/generate_header.php \
+            /work/input.dat /work/context/pq/loader/build.h
+          cp docker/Dockerfile "$work/context/Dockerfile"
+          python3 scripts/verify_context.py "$work/context"
+          rm -f "$work/input.dat"
+          rm -rf "$work/encoded"
+
+      - name: Registry login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ runner.temp }}/linnms/context
+          file: ${{ runner.temp }}/linnms/context/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          labels: |
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.source.outputs.sha }}
+          tags: |
+            ghcr.io/ramonveredic/linnms:latest
+            ghcr.io/ramonveredic/linnms:${{ steps.release.outputs.version }}

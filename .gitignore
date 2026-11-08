@@ -1,0 +1,18 @@
+/build/
+/tmp/
+/bundle/
+/context/
+/staging/
+/pq/
+/*.key
+*.so
+*.lnc
+.vscode/
+# Konfigurasi lokal dan rahasia instalasi
+.env
+.env.*
+!.env.example
+
+# Generated Python test artifacts
+__pycache__/
+*.py[cod]

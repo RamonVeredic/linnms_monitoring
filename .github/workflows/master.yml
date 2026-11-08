@@ -1,0 +1,97 @@
+name: master
+run-name: master
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: master
+  cancel-in-progress: false
+
+jobs:
+  master:
+    name: master
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout LINNMS
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Test frontend export
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -v -s tests -p 'test_frontend_sync.py'
+          python3 -m unittest discover -v -s tests -p 'test_sync_master.py'
+          python3 -m unittest discover -v -s tests -p 'test_master.py'
+
+      - name: Read source
+        env:
+          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
+          INPUT_REPO: RamonVeredic/LINNMS-Staging
+          SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.sha || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$READ_TOKEN" || { echo 'Missing LINNMS_READ_TOKEN' >&2; exit 1; }
+          [[ "$INPUT_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
+          work="$RUNNER_TEMP/linnms"
+          mkdir -p "$work"
+          git clone -q --depth 1 --branch master \
+            "https://x-access-token:${READ_TOKEN}@github.com/${INPUT_REPO}.git" \
+            "$work/source"
+          if [[ -n "$SOURCE_SHA" ]]; then
+            [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid source revision' >&2; exit 1; }
+            git -C "$work/source" fetch -q --unshallow origin master
+            git -C "$work/source" merge-base --is-ancestor "$SOURCE_SHA" origin/master || {
+              echo 'Source revision is not in master' >&2
+              exit 1
+            }
+            git -C "$work/source" checkout -q --detach "$SOURCE_SHA"
+          fi
+          git -C "$work/source" rev-parse HEAD > "$work/revision"
+          python3 scripts/master.py "$work/source" "$work/export"
+
+      - name: Update public source
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/linnms"
+          export_root="$work/export"
+
+          test -d "$export_root/config/www" || { echo 'Missing frontend export' >&2; exit 1; }
+          test ! -d "$export_root/config/app" || { echo 'Unexpected backend export' >&2; exit 1; }
+          test ! -d "$export_root/nginx" || { echo 'Unexpected nginx export' >&2; exit 1; }
+          test ! -d "$export_root/linnms.init.d" || { echo 'Unexpected init export' >&2; exit 1; }
+          test ! -d "$export_root/linnms.service.d" || { echo 'Unexpected service export' >&2; exit 1; }
+
+          mkdir -p config/www
+          rsync -a --delete --exclude=vendor/ "$export_root/config/www/" config/www/
+
+          if find config/www -type d -name vendor -print -quit | grep -q .; then
+            echo 'Vendor directory found in frontend; refusing commit' >&2
+            exit 1
+          fi
+          test -f config/www/app/internal-api-client.php || {
+            echo 'Required application bridge is missing' >&2; exit 1;
+          }
+
+          git add -A -- config/www
+          if git diff --cached --quiet; then
+            echo 'No source changes'
+            exit 0
+          fi
+
+          git config user.name 'planetsrv'
+          git config user.email 'mondaiajah1w@gmail.com'
+          revision="$(cat "$work/revision")"
+          test -n "$revision" || { echo 'Source revision is empty' >&2; exit 1; }
+          subject="$(git -C "$work/source" log -1 --format=%s)"
+          test -n "$subject" || { echo 'Source commit subject is empty' >&2; exit 1; }
+          git commit -m "$subject" -m "Revision: ${revision}"
+          git push origin HEAD:main
