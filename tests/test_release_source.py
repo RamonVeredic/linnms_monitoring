@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = (ROOT / ".github/workflows/linnms.yml").read_text(encoding="utf-8")
+WORKFLOW = (ROOT / ".github/workflows/linnms_monitoring.yml").read_text(encoding="utf-8")
 DOCKERFILE = (ROOT / "docker/Dockerfile").read_text(encoding="utf-8")
 
 class ReleaseSourceContractTest(unittest.TestCase):
@@ -36,8 +36,8 @@ class ReleaseSourceContractTest(unittest.TestCase):
         self.assertIn("ghcr.io/ramonveredic/linnms:latest", WORKFLOW)
 
     def test_updated_paths(self):
-        self.assertIn("github.com/${MODULE_REPO}.git", WORKFLOW)
-        self.assertIn("secrets.LINNMS_MODULE_REPO", WORKFLOW)
+        self.assertIn("github.com/${LINNMS_MODUL}.git", WORKFLOW)
+        self.assertIn("LINNMS_MODUL: RamonVeredic/linnms-protect", WORKFLOW)
         self.assertIn("docker buildx build --platform linux/amd64 -f docker/Dockerfile .", WORKFLOW)
         self.assertIn("docker buildx build --platform linux/arm64 -f docker/Dockerfile .", WORKFLOW)
         self.assertNotIn("Dockerfile.smoke", WORKFLOW)
