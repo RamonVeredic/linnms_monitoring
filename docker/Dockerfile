@@ -34,6 +34,12 @@ COPY bundle/config/www/ /opt/linnms/frontend/
 COPY bundle/nginx/ /opt/linnms/nginx/
 COPY bundle/linnms.init.d/50-linnms-public-init /custom-cont-init.d/50-linnms-public-init
 COPY bundle/linnms.service.d/ /custom-services.d/
+
+# Preserve the source layout expected by frontend/app/bootstrap.php.
+# Staging has config/www beside config/app/config; production uses /opt/linnms.
+RUN mkdir -p /opt/linnms/app \
+    && ln -s ../config /opt/linnms/app/config \
+    && test -f /opt/linnms/app/config/session.php
 RUN set -eu; \
     ! find /opt/linnms -name .github -o -name .git -o -name 'Dockerfile*' -o -name '*.sample' | grep .; \
     ! grep -E 'SOURCE_(MOUNTS|ROOT|SEED)|staging|source-seed' /custom-cont-init.d/50-linnms-public-init; \
