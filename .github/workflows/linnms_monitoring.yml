@@ -1,4 +1,4 @@
-name: LINNMS
+name: LINNMS_MONITORING
 on:
   push:
     tags:
@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag (e.g. v1.2.3)"
+        description: "tag (e.g. v1.2.3)"
         required: true
         type: string
       source_mode:
-        description: "Sumber master hasil merge atau tag rilis vX.Y.Z"
+        description: "rilis vX.Y.Z"
         type: choice
         required: true
         default: master
@@ -19,7 +19,7 @@ on:
           - master
           - tag
       source_tag:
-        description: "Tag sumber rilis, misalnya v1.3.0 (hanya mode tag)"
+        description: "eg tag"
         required: false
         type: string
 
@@ -117,7 +117,7 @@ jobs:
       - name: Fetch release source
         id: source
         env:
-          READ_TOKEN: ${{ secrets.LINNMS_READ_TOKEN }}
+          READ_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
           INPUT_REPO: RamonVeredic/LINNMS-Staging
           MODULE_REPO: ${{ secrets.LINNMS_MODULE_REPO }}
           SOURCE_MODE: ${{ steps.release.outputs.source_mode }}
