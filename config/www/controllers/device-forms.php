@@ -8,7 +8,7 @@ function device_add_form_result(int $userId): array
         $pageShell = internal_api_request($userId, 'page.shell.read', ['page' => 'dashboard']);
     } catch (Throwable $error) {
         error_log('[LINNMS] Form tambah perangkat: ' . $error->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data perangkat tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => alert_message('device-forms-data-perangkat-tidak-dapat-dimuat')]];
     }
     extract(device_add_view_model($pageShell), EXTR_SKIP);
     ob_start();
@@ -23,16 +23,16 @@ function device_add_form_result(int $userId): array
 
 function device_edit_form_result(int $userId, int $rowId): array
 {
-    if ($rowId < 1) return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Perangkat tidak valid.']];
+    if ($rowId < 1) return ['status' => 422, 'payload' => ['ok' => false, 'message' => alert_message('live-perangkat-tidak-valid')]];
     try {
         $context = internal_api_request($userId, 'page.shell.read', ['page' => 'device-edit-form', 'row_id' => $rowId]);
     } catch (Throwable $error) {
         error_log('[LINNMS] Form edit perangkat: ' . $error->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data perangkat tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => alert_message('device-forms-data-perangkat-tidak-dapat-dimuat')]];
     }
     $row = is_array($context['editable_device'] ?? null) ? $context['editable_device'] : null;
     if ($row === null || device_edit_kind($row) === '') {
-        return ['status' => 404, 'payload' => ['ok' => false, 'message' => 'Perangkat tidak ditemukan.']];
+        return ['status' => 404, 'payload' => ['ok' => false, 'message' => alert_message('live-perangkat-tidak-ditemukan')]];
     }
     if (device_edit_kind($row) === 'olt_api') {
         $editApiOlt = $row;

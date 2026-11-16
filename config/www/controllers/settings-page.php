@@ -41,7 +41,7 @@ function settings_admin_timing_fields(array $shell): array
             'value' => $value,
             'min' => $min,
             'max' => $max,
-            'step' => $key === 'snmp_request_timeout_ms' ? 100 : 1,
+            'step' => 1,
             'unit' => $unit,
             'help' => $help,
         ];
@@ -49,7 +49,7 @@ function settings_admin_timing_fields(array $shell): array
     return $fields;
 }
 
-function notification_page_view_data(array $shell, bool $telegramAllowed, bool $whatsappAllowed): array
+function notification_channel_view_data(array $shell, bool $telegramAllowed, bool $whatsappAllowed): array
 {
     $settings = (array)($shell['user_settings'] ?? []);
     $telegramService = (array)($shell['telegram_service_settings'] ?? []);
@@ -57,6 +57,21 @@ function notification_page_view_data(array $shell, bool $telegramAllowed, bool $
     $whatsappService = (array)($shell['whatsapp_service_settings'] ?? []);
     $telegramAvailable = $telegramAllowed && (int)($telegramService['enabled'] ?? 0) === 1;
     $whatsappAvailable = $whatsappAllowed && (int)($whatsappService['enabled'] ?? 0) === 1;
+    return [
+        'telegram_enabled' => (int)($settings['telegram_enabled'] ?? 0) === 1,
+        'telegram_available' => $telegramAvailable,
+        'telegram_allowed' => $telegramAllowed,
+        'telegram_message' => !$telegramAllowed ? 'Tidak diizinkan.' : (!$telegramAvailable ? 'Belum tersedia.' : ''),
+        'whatsapp_enabled' => (int)($whatsappUser['enabled'] ?? 0) === 1,
+        'whatsapp_available' => $whatsappAvailable,
+        'whatsapp_allowed' => $whatsappAllowed,
+        'whatsapp_message' => !$whatsappAllowed ? 'Tidak diizinkan.' : (!$whatsappAvailable ? 'Belum tersedia.' : ''),
+    ];
+}
+
+function notification_page_view_data(array $shell, bool $telegramAllowed, bool $whatsappAllowed): array
+{
+    $settings = (array)($shell['user_settings'] ?? []);
     $limits = (array)($shell['notification_limits'] ?? []);
     $thresholds = [];
     foreach ([
@@ -86,15 +101,7 @@ function notification_page_view_data(array $shell, bool $telegramAllowed, bool $
             'enabled' => (int)($settings[$key] ?? $fallback) === 1];
     }
     $selectedIds = $shell['notification_selected_ids'] ?? null;
-    return [
-        'telegram_enabled' => (int)($settings['telegram_enabled'] ?? 0) === 1,
-        'telegram_available' => $telegramAvailable,
-        'telegram_allowed' => $telegramAllowed,
-        'telegram_message' => !$telegramAllowed ? 'Tidak diizinkan.' : (!$telegramAvailable ? 'Belum tersedia.' : ''),
-        'whatsapp_enabled' => (int)($whatsappUser['enabled'] ?? 0) === 1,
-        'whatsapp_available' => $whatsappAvailable,
-        'whatsapp_allowed' => $whatsappAllowed,
-        'whatsapp_message' => !$whatsappAllowed ? 'Tidak diizinkan.' : (!$whatsappAvailable ? 'Belum tersedia.' : ''),
+    return notification_channel_view_data($shell, $telegramAllowed, $whatsappAllowed) + [
         'thresholds' => $thresholds,
         'selected_map' => $selectedIds === null ? null : array_fill_keys($selectedIds, true),
         'toggles' => $toggles,

@@ -516,7 +516,9 @@ button.is-loading > i {
   border-color: var(--border-hover);
   color: var(--text-primary);
   transform: translateY(-1px);
-  box-shadow: 0 0 0 3px var(--tint-primary);
+  box-shadow:
+    0 6px 22px rgba(91, 141, 239, 0.3),
+    0 0 0 3px var(--tint-primary);
 }
 .button.button-danger {
   background: rgba(234, 57, 65, 0.16);

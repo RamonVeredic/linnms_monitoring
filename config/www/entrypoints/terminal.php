@@ -13,14 +13,14 @@ $respond = static function (array $payload, int $status = 200): never {
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 };
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') $respond(['ok' => false, 'message' => 'Method tidak didukung.'], 405);
-if (linnms_enforce_idle_session(false) || !is_logged_in()) $respond(['ok' => false, 'message' => 'Sesi telah berakhir.'], 401);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') $respond(['ok' => false, 'message' => alert_message('data-method-tidak-didukung')], 405);
+if (linnms_enforce_idle_session(false) || !is_logged_in()) $respond(['ok' => false, 'message' => alert_message('terminal-sesi-telah-berakhir')], 401);
 $csrf = (string)($_SESSION['csrf'] ?? '');
-if ($csrf === '' || !hash_equals($csrf, (string)($_POST['csrf'] ?? ''))) $respond(['ok' => false, 'message' => 'Muat ulang halaman lalu coba lagi.'], 419);
+if ($csrf === '' || !hash_equals($csrf, (string)($_POST['csrf'] ?? ''))) $respond(['ok' => false, 'message' => alert_message('terminal-muat-ulang-halaman-lalu-coba-lagi')], 419);
 
 $userId = current_user_id();
 $rowId = public_resource_id((string)($_POST['ref'] ?? ''), 'olt');
-if ($rowId === null) $respond(['ok' => false, 'message' => 'OLT tidak ditemukan.'], 404);
+if ($rowId === null) $respond(['ok' => false, 'message' => alert_message('olt-olt-tidak-ditemukan')], 404);
 $request = [
     'action' => (string)($_POST['action'] ?? ''),
     'row_id' => $rowId,
@@ -33,9 +33,9 @@ $request = [
 session_write_close();
 try {
     $response = internal_api_request($userId, 'olt.terminal.action', $request, 125);
-    $respond((array)($response['payload'] ?? ['ok' => false, 'message' => 'Terminal tidak tersedia.']),
+    $respond((array)($response['payload'] ?? ['ok' => false, 'message' => alert_message('terminal-terminal-tidak-tersedia')]),
         (int)($response['status'] ?? 503));
 } catch (Throwable $error) {
     error_log('[LINNMS] Terminal API: ' . $error->getMessage());
-    $respond(['ok' => false, 'message' => 'Terminal tidak tersedia.'], 503);
+    $respond(['ok' => false, 'message' => alert_message('terminal-terminal-tidak-tersedia')], 503);
 }

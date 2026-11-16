@@ -879,7 +879,7 @@
     const o = new Map(),
       r = new WeakMap(),
       d = (e) => {
-        if (o.has(e)) return;
+        if (o.has(e) || e.closest("[data-profile-page]")) return;
         if (
           e instanceof HTMLInputElement &&
           "switch" === e.getAttribute("role")
@@ -1007,7 +1007,7 @@
             timeout: 1800,
           });
       if (!n || "NotSuporte" === n)
-        return void o("warning", "Serial belum tersedia");
+        return void o("warning", window.linnmsAlertMessage('browser-serial-unavailable'));
       a.disabled = !0;
       const r = document.createElement("textarea");
       ((r.value = n),
@@ -1034,7 +1034,7 @@
             l && (l.className = "bi bi-check-lg"),
             s?.classList.add("is-copied"),
             i?.classList.add("is-copied"),
-            o("success", "Serial tersalin"),
+            o("success", window.linnmsAlertMessage('browser-serial-copied')),
             e.set(
               a,
               setTimeout(() => {
@@ -1043,7 +1043,7 @@
                   l && (l.className = "bi bi-clipboard"));
               }, 1800),
             ))
-          : o("error", "Gagal menyalin serial"));
+          : o("error", window.linnmsAlertMessage('browser-serial-copy-failed')));
     });
   })(),
   (() => {

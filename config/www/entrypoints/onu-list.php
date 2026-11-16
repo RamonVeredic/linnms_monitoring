@@ -18,13 +18,13 @@ $respond = static function (array $payload, int $status = 200): never {
 };
 
 if (linnms_enforce_idle_session(false)) {
-    $respond(['ok' => false, 'message' => 'Sesi aplikasi telah berakhir.'], 401);
+    $respond(['ok' => false, 'message' => alert_message('data-sesi-aplikasi-telah-berakhir')], 401);
 }
 if (!is_logged_in()) {
-    $respond(['ok' => false, 'message' => 'Sesi aplikasi telah berakhir.'], 401);
+    $respond(['ok' => false, 'message' => alert_message('data-sesi-aplikasi-telah-berakhir')], 401);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    $respond(['ok' => false, 'message' => 'Method tidak didukung.'], 405);
+    $respond(['ok' => false, 'message' => alert_message('data-method-tidak-didukung')], 405);
 }
 
 $userId = current_user_id();
@@ -65,5 +65,5 @@ try {
 } catch (Throwable $e) {
     application_log_error($e, 'onu_list');
     error_log('ONU list failed: ' . $e->getMessage());
-    $respond(['ok' => false, 'message' => 'Data ONU tidak dapat dimuat.'], 502);
+    $respond(['ok' => false, 'message' => alert_message('onu-list-data-onu-tidak-dapat-dimuat')], 502);
 }

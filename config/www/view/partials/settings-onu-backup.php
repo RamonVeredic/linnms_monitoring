@@ -66,7 +66,7 @@
                         <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="action" value="confirm_onu_backup">
                         <input type="hidden" name="preview_token" value="<?= h((string)($onuBackupPreview['token'] ?? '')) ?>">
-                        <button class="button primary" type="submit" <?= (int)($backupSummary['ready'] ?? 0) < 1 ? 'disabled' : '' ?> onclick="return confirm('Perbarui nama dan alamat ONU yang cocok berdasarkan MAC?')">
+                        <button class="button primary" type="submit" <?= (int)($backupSummary['ready'] ?? 0) < 1 ? 'disabled' : '' ?> onclick="return confirm(<?= h(json_encode(alert_message('confirm-onu-backup'), JSON_THROW_ON_ERROR)) ?>)">
                             <i class="bi bi-check2-circle" aria-hidden="true"></i> Konfirmasi Impor
                         </button>
                     </form>

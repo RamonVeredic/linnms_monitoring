@@ -16,17 +16,17 @@ $setupUrl = public_app_url('setup');
 
 $entry = internal_api_request(current_user_id(), 'app.entry.read');
 if (!isset($entry['mode']) || !is_array($entry['identity'] ?? null)) {
-    throw new RuntimeException('Kontrak entry aplikasi tidak lengkap.');
+    throw new RuntimeException(alert_message('entry-kontrak-entry-aplikasi-tidak-lengkap'));
 }
 $mode = (string)$entry['mode'];
 if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_submit'], true)) {
     try {
         verify_csrf();
         if ($operation === 'access_submit' && ($requestPath !== '/activate' || !in_array($mode, ['pending', 'fault'], true))) {
-            throw new RuntimeException('Aktivasi tidak tersedia.');
+            throw new RuntimeException(alert_message('entry-aktivasi-tidak-tersedia'));
         }
         if ($operation === 'setup_submit' && ($requestPath !== '/setup' || $mode !== 'ready')) {
-            throw new RuntimeException('Setup akun tidak tersedia.');
+            throw new RuntimeException(alert_message('entry-setup-akun-tidak-tersedia'));
         }
         $result = internal_api_request(0, 'app.entry.action', [
             'action' => $operation,
@@ -39,14 +39,14 @@ if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_s
         if ($operation === 'access_submit') {
             unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['display_name'], $_SESSION['role']);
             session_regenerate_id(true);
-            flash('success', 'Aktivasi berhasil.');
+            flash('success', alert_message('entry-aktivasi-berhasil'));
             header('Location: ' . public_app_url(), true, 303);
             exit;
         }
         $createdUser = is_array($result['user'] ?? null) ? $result['user'] : null;
-        if ($createdUser === null) throw new RuntimeException('Akun yang baru dibuat belum dapat dimuat.');
+        if ($createdUser === null) throw new RuntimeException(alert_message('entry-akun-yang-baru-dibuat-belum-dapat-dimuat'));
         linnms_sign_in_user($createdUser);
-        flash('success', 'Akun berhasil dibuat.');
+        flash('success', alert_message('entry-akun-berhasil-dibuat'));
         header('Location: ' . public_page_url('dashboard'), true, 303);
         exit;
     } catch (Throwable $error) {

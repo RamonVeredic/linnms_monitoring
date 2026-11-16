@@ -43,14 +43,7 @@
                     <header class="tittle-subtitle"><h3>Notifikasi</h3></header>
                     <div class="settings-body">
                         <ul class="settings-list">
-                            <?php foreach ([
-                                ['label' => 'Telegram', 'allowed' => $telegramFeatureAllowed],
-                                ['label' => 'WhatsApp', 'allowed' => $whatsappFeatureAllowed],
-                            ] as $channel): ?>
-                                <li>
-                                    <div class="settings-row<?= !$channel['allowed'] ? ' is-access-locked' : '' ?>"><span class="label"><?= h($channel['label']) ?></span><span class="control"><input type="checkbox" role="switch" <?= $channel['allowed'] ? 'checked' : '' ?> disabled aria-label="<?= h($channel['label'] . ($channel['allowed'] ? ' aktif' : ' tidak diizinkan')) ?>"><?php if ($channel['allowed']): ?><span class="toggle-switch" aria-hidden="true"></span><?php else: ?><span class="toggle-disabled-lock" aria-hidden="true"><i class="bi bi-lock-fill"></i></span><?php endif; ?></span></div>
-                                </li>
-                            <?php endforeach; ?>
+                            <?php require project_path('view', 'partials', 'notification-channel-toggles.php'); ?>
                         </ul>
                     </div>
                 </section>

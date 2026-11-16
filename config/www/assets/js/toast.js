@@ -1,3 +1,16 @@
+(() => {
+  "use strict";
+  const data = document.getElementById("linnms-alert-messages");
+  const messages = data ? JSON.parse(data.textContent) : {};
+  window.linnmsAlertMessage = (key, values = {}) => {
+    const message = messages[key];
+    if (typeof message !== "string") throw new Error("Pesan alert tidak ditemukan: " + key);
+    return message.replace(/\{(\w+)\}/g, (placeholder, name) =>
+      Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : placeholder
+    );
+  };
+})();
+
 ((() => {
   "use strict";
   const e = "linnms-toast-stage",

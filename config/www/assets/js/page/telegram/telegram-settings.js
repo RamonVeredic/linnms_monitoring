@@ -6,7 +6,7 @@
   if (!form || !testButton) return;
 
   const notify = (ok, message) => {
-    const text = String(message || '').trim() || (ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal');
+    const text = String(message || '').trim() || (ok ? window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-berhasil') : window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-gagal'));
     if (typeof window.linnmsNotify === 'function') window.linnmsNotify(ok ? 'success' : 'error', text);
   };
 
@@ -51,10 +51,10 @@
       }
       notify(
         payload.ok === true,
-        String(payload.message || (payload.ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal'))
+        String(payload.message || (payload.ok ? window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-berhasil') : window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-gagal')))
       );
     } catch (_) {
-      notify(false, 'Tes koneksi gagal. Coba lagi');
+      notify(false, window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-gagal-coba-lagi'));
     } finally {
 
       if (tokenInput instanceof HTMLInputElement) tokenInput.value = tokenValue;

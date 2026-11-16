@@ -86,8 +86,8 @@ register_shutdown_function(static function () use (
 
         if (($isFatal || $status >= 500) && empty($GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'])) {
             $fatalMessage = $isFatal
-                ? trim((string)($fatal['message'] ?? 'Fatal error tanpa pesan.'))
-                : 'HTTP ' . $status . ' pada request aplikasi.';
+                ? trim((string)($fatal['message'] ?? error_log_message('web-fatal-without-message')))
+                : error_log_message('web-request-http-error', ['status' => $status]);
             $fatalContext = [
                 'duration_ms' => $duration,
                 'http_status' => $status,
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $submittedGroup = is_array($submittedDriver) ? (string)($submittedDriver['group'] ?? '') : '';
         $deviceAddErrors = [];
         if (!is_array($submittedDriver) || !in_array($submittedGroup, ['olt', 'router', 'switch'], true)) {
-            $deviceAddErrors['driver_id'] = $submittedDriverId === '' ? 'Isi bidang ini.' : 'Jenis perangkat tidak valid.';
+            $deviceAddErrors['driver_id'] = $submittedDriverId === '' ? 'Isi bidang ini.' : alert_message('index-jenis-perangkat-tidak-valid');
         }
         if (trim((string)($_POST['device_name'] ?? '')) === '') {
             $deviceAddErrors['device_name'] = 'Isi bidang ini.';
@@ -230,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($submittedPort === '') {
                 $deviceAddErrors['snmp_port'] = 'Isi bidang ini.';
             } elseif (!ctype_digit($submittedPort) || (int)$submittedPort < 1 || (int)$submittedPort > 65535) {
-                $deviceAddErrors['snmp_port'] = 'Masukkan port 1–65535.';
+                $deviceAddErrors['snmp_port'] = alert_message('index-masukkan-port-1-65535');
             }
             if (trim((string)($_POST['community'] ?? '')) === '') {
                 $deviceAddErrors['community'] = 'Isi bidang ini.';
@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($submittedCliPort === '') {
                     $deviceAddErrors['ports'] = 'Isi bidang ini.';
                 } elseif (!ctype_digit($submittedCliPort) || (int)$submittedCliPort < 1 || (int)$submittedCliPort > 65535) {
-                    $deviceAddErrors['ports'] = 'Masukkan port 1–65535.';
+                    $deviceAddErrors['ports'] = alert_message('index-masukkan-port-1-65535');
                 }
                 if (trim((string)($_POST['username'] ?? '')) === '') $deviceAddErrors['username'] = 'Isi bidang ini.';
                 if (trim((string)($_POST['password'] ?? '')) === '') $deviceAddErrors['password'] = 'Isi bidang ini.';
@@ -249,13 +249,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($deviceAddErrors !== []) {
             if (!empty($submittedDriver['telnet_cli']) && (string)($_POST['hybrid_status'] ?? '') === '1'
                 && !isset($deviceAddErrors['password'])) {
-                $deviceAddErrors['password'] = 'Masukkan ulang password.';
+                $deviceAddErrors['password'] = alert_message('index-masukkan-ulang-password');
             }
             $oldDeviceInput = $_POST;
             unset($oldDeviceInput['csrf'], $oldDeviceInput['password'], $oldDeviceInput['community']);
             $_SESSION[$submittedGroup === 'router' || $submittedGroup === 'switch' ? 'old_snmp_device' : 'old_olt'] = $oldDeviceInput;
             $_SESSION['device_add_errors'] = $deviceAddErrors;
-            flash('error', 'Periksa bidang yang ditandai merah.');
+            flash('error', alert_message('index-periksa-bidang-yang-ditandai-merah'));
             redirect('?page=dashboard&add_device=1');
         }
         if (is_array($submittedDriver) && in_array((string)($submittedDriver['group'] ?? ''), ['router','switch'], true)) {
@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $expectedGroup = $action === 'add_mikrotik' ? 'router' : 'switch';
         if (!is_logged_in()) redirect('?page=login');
         if ($group !== $expectedGroup) {
-            flash('error', 'Jenis perangkat tidak valid.');
+            flash('error', alert_message('index-jenis-perangkat-tidak-valid'));
             redirect('?page=dashboard');
         }
         $addPage = '?page=dashboard&add_device=1';
@@ -289,10 +289,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $created = internal_api_request(current_user_id(), 'device.action',
                 ['action' => $action, 'data' => $requestData], 90);
             if (empty($created['ok']) || (int)($created['data']['id'] ?? 0) < 1) {
-                throw new RuntimeException('Perangkat gagal ditambahkan.');
+                throw new RuntimeException(alert_message('index-perangkat-gagal-ditambahkan'));
             }
             unset($_SESSION['old_snmp_device']);
-            flash('success', $publicDeviceLabel . ' berhasil ditambahkan.');
+            flash('success', alert_message('device-berhasil-ditambahkan', ['device' => $publicDeviceLabel]));
             redirect('?page=' . $viewPage . '&id=' . (int)$created['data']['id']);
         } catch (Throwable $e) {
             $GLOBALS['LINNMS_ACTION_LOG'] = [
@@ -306,7 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ip_address' => trim((string)($_POST['ip_address'] ?? '')),
                 'snmp_port' => trim((string)($_POST['snmp_port'] ?? '161')),
             ];
-            flash('error', $publicDeviceLabel . ' gagal ditambahkan.');
+            flash('error', alert_message('device-gagal-ditambahkan', ['device' => $publicDeviceLabel]));
             redirect($addPage);
         }
     }
@@ -318,11 +318,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $rowId !== null ? internal_api_request(current_user_id(), 'device.action',
                 ['action' => $action, 'data' => ['device_id' => $rowId]], 30) : [];
             $deleted = !empty($result['ok']);
-            if (!$deleted) throw new RuntimeException('Perangkat tidak ditemukan atau gagal dihapus');
-            flash('success', 'Perangkat berhasil dihapus');
+            if (!$deleted) throw new RuntimeException(alert_message('index-perangkat-tidak-ditemukan-atau-gagal-dihapus'));
+            flash('success', alert_message('index-perangkat-berhasil-dihapus'));
         } catch (Throwable $e) {
             application_log_error($e, $action);
-            flash('error', 'Perangkat gagal dihapus');
+            flash('error', alert_message('index-perangkat-gagal-dihapus'));
         }
         redirect('?page=dashboard');
     }
@@ -335,13 +335,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ['page' => 'device-edit-form', 'row_id' => $rowId]) : [];
         } catch (Throwable $e) {
             application_log_error($e, $action);
-            flash('error', 'Data perangkat tidak dapat dimuat.');
+            flash('error', alert_message('device-forms-data-perangkat-tidak-dapat-dimuat'));
             redirect('?page=dashboard');
         }
         $editRow = is_array($editContext['editable_device'] ?? null) ? $editContext['editable_device'] : null;
         $editKind = is_array($editRow) ? device_edit_kind($editRow) : '';
         if ($rowId === null || $editKind === '') {
-            flash('error', 'Perangkat tidak ditemukan.');
+            flash('error', alert_message('live-perangkat-tidak-ditemukan'));
             redirect('?page=dashboard');
         }
 
@@ -375,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'error',
                 $e instanceof InvalidArgumentException
                     ? $e->getMessage()
-                    : $publicDeviceLabel . ' gagal diperbarui.'
+                    : alert_message('device-gagal-diperbarui', ['device' => $publicDeviceLabel])
             );
             redirect($editPageUrl);
         }
@@ -384,13 +384,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['old_edit_device'] = $oldEditInput;
             flash(
                 'error',
-                (string)($result['data']['public_message'] ?? ($publicDeviceLabel . ' gagal diperbarui.'))
+                (string)($result['data']['public_message'] ?? (alert_message('device-gagal-diperbarui', ['device' => $publicDeviceLabel])))
             );
             redirect($editPageUrl);
         }
 
         unset($_SESSION['old_edit_device']);
-        flash('success', (string)($result['data']['public_message'] ?? ($publicDeviceLabel . ' berhasil diperbarui.')));
+        flash('success', (string)($result['data']['public_message'] ?? (alert_message('device-berhasil-diperbarui', ['device' => $publicDeviceLabel]))));
         redirect($viewUrl);
     }
 
@@ -605,7 +605,7 @@ $oltViewId = $page === 'view-olt'
 
 if ($page === 'view-olt') {
     if ($oltViewId === null) {
-        flash('warning', 'OLT tidak ditemukan.');
+        flash('warning', alert_message('olt-olt-tidak-ditemukan'));
         redirect('?page=dashboard');
     }
 
@@ -613,7 +613,7 @@ if ($page === 'view-olt') {
     $oltDetail = is_array($oltSnapshot['detail'] ?? null) ? $oltSnapshot['detail'] : null;
 
     if ($oltDetail === null) {
-        flash('warning', 'OLT tidak ditemukan.');
+        flash('warning', alert_message('olt-olt-tidak-ditemukan'));
         redirect('?page=dashboard');
     }
     if (
@@ -683,7 +683,7 @@ $devicePageKind = in_array($page,['view-mikrotik','view-mikrotik-interface'],tru
 if ($devicePageKind !== null) {
     $deviceRowId = valid_positive_id($_GET['id'] ?? null);
     if ($deviceRowId === null) {
-        flash('warning', 'Perangkat tidak ditemukan.');
+        flash('warning', alert_message('live-perangkat-tidak-ditemukan'));
         redirect('?page=dashboard');
     }
     try {
@@ -691,7 +691,7 @@ if ($devicePageKind !== null) {
             'row_id' => $deviceRowId,
             'kind' => $devicePageKind,
         ]);
-        if (empty($snapshot['ok'])) throw new RuntimeException('Perangkat tidak ditemukan.');
+        if (empty($snapshot['ok'])) throw new RuntimeException(alert_message('live-perangkat-tidak-ditemukan'));
         $inspection = (array)($snapshot['data'] ?? []);
         $deviceDetail = (array)($inspection['device'] ?? []);
         $deviceSystem = (array)($inspection['system'] ?? []);
@@ -708,13 +708,13 @@ if ($devicePageKind !== null) {
                 if((string)($interface['name']??'')===$requestedInterface){$interfaceDetail=$interface;break;}
             }
             if(!is_array($interfaceDetail)){
-                flash('warning','Interface MikroTik tidak ditemukan.');
+                flash('warning',alert_message('index-interface-mikrotik-tidak-ditemukan'));
                 redirect('?page=view-mikrotik&id='.$deviceRowId);
             }
         }
     } catch (Throwable $e) {
         application_log_error($e, $devicePageKind . '_detail');
-        flash('warning', 'Perangkat tidak ditemukan.');
+        flash('warning', alert_message('live-perangkat-tidak-ditemukan'));
         redirect('?page=dashboard');
     }
 }
@@ -849,6 +849,8 @@ $notificationView = [];
 if ($page === 'notification') {
     require_once LINNMS_UI_ROOT . '/controllers/settings-page.php';
     $notificationView = notification_page_view_data($pageShell, $telegramFeatureAllowed, $whatsappFeatureAllowed);
+} elseif ($page === 'settings-admin') {
+    $notificationView = notification_channel_view_data($pageShell, $telegramFeatureAllowed, $whatsappFeatureAllowed);
 }
 $notificationHistory = (array)($pageShell['notification_history'] ?? []);
 $whatsappHistoryPageSize = max(1, (int)($notificationHistory['page_size'] ?? 1));

@@ -8,15 +8,15 @@ require_once LINNMS_UI_ROOT . '/controllers/dashboard.php';
 function data_error_result(string $code, string $type = ''): array
 {
     $message = match ($code) {
-        'unauthorized' => 'Sesi aplikasi telah berakhir.',
-        'method_not_allowed' => 'Method tidak didukung.',
-        'port_invalid' => 'Port LAN tidak valid.',
+        'unauthorized' => alert_message('data-sesi-aplikasi-telah-berakhir'),
+        'method_not_allowed' => alert_message('data-method-tidak-didukung'),
+        'port_invalid' => alert_message('data-port-lan-tidak-valid'),
         'validation' => match ($type) {
-            'olt-scan-status' => 'OLT tidak valid.',
-            'zte-onu-remote-interface' => 'Antarmuka ONU tidak valid.',
-            default => 'ONU tidak valid.',
+            'olt-scan-status' => alert_message('olt-olt-tidak-valid'),
+            'zte-onu-remote-interface' => alert_message('data-antarmuka-onu-tidak-valid'),
+            default => alert_message('olt-onu-tidak-valid'),
         },
-        default => 'Permintaan tidak didukung.',
+        default => alert_message('data-permintaan-tidak-didukung'),
     };
     $status = match ($code) {
         'unauthorized' => 401,
@@ -51,16 +51,16 @@ function onu_snapshot_detail_result(int $userId, string $type, int $rowId, strin
         default => 500,
     };
     $message = match ($code) {
-        'ok' => 'Data berhasil dibaca.',
-        'validation' => 'Permintaan pembacaan ONU tidak valid.',
-        'not_found' => 'ONU tidak ditemukan.',
-        'forbidden' => 'Akses ONU tidak diizinkan.',
-        'unsupported' => 'Pembacaan data ini belum tersedia.',
-        'device_unreachable' => 'Perangkat tidak dapat dijangkau.',
-        'device_auth_failed' => 'Autentikasi perangkat gagal.',
-        'device_rejected' => 'Data gagal dibaca.',
-        'conflict' => 'ONU sedang diproses. Coba lagi.',
-        default => 'Data tidak dapat diproses.',
+        'ok' => alert_message('data-data-berhasil-dibaca'),
+        'validation' => alert_message('data-permintaan-pembacaan-onu-tidak-valid'),
+        'not_found' => alert_message('data-onu-tidak-ditemukan'),
+        'forbidden' => alert_message('data-akses-onu-tidak-diizinkan'),
+        'unsupported' => alert_message('data-pembacaan-data-ini-belum-tersedia'),
+        'device_unreachable' => alert_message('device-unreachable'),
+        'device_auth_failed' => alert_message('Device-authentication-failed'),
+        'device_rejected' => alert_message('data-data-gagal-dibaca'),
+        'conflict' => alert_message('data-onu-sedang-diproses-coba-lagi'),
+        default => alert_message('data-data-tidak-dapat-diproses'),
     };
     return ['status' => $status, 'payload' => ['ok' => $ok, 'message' => $message]
         + (is_array($result['data'] ?? null) ? $result['data'] : [])];
@@ -86,12 +86,12 @@ function data_snapshot_read_result(int $userId, array $params): array
         default => 500,
     };
     $message = match ($code) {
-        'validation' => 'Permintaan data tidak valid.',
-        'not_found' => 'Data tidak ditemukan.',
-        'forbidden' => 'Akses data tidak diizinkan.',
-        'unsupported' => 'Data belum tersedia.',
-        'conflict' => 'Data sedang diproses.',
-        default => 'Data tidak dapat dimuat.',
+        'validation' => alert_message('data-permintaan-data-tidak-valid'),
+        'not_found' => alert_message('Nodata-found'),
+        'forbidden' => alert_message('data-akses-data-tidak-diizinkan'),
+        'unsupported' => alert_message('data-data-belum-tersedia'),
+        'conflict' => alert_message('data-data-sedang-diproses'),
+        default => alert_message('data-data-tidak-dapat-dimuat'),
     };
     $payload = ['ok' => $ok] + (is_array($result['data'] ?? null) ? $result['data'] : []);
     if ($ok && $type === 'olt-scan-status') {
@@ -102,7 +102,7 @@ function data_snapshot_read_result(int $userId, array $params): array
         $payload['completion_level'] = (string)($payload['status'] ?? '') === 'done' ? 'success' : 'error';
         $payload['completion_message'] = $payload['completion_level'] === 'success'
             ? 'Fast, Middle, dan Low Sync OLT selesai.'
-            : 'Sinkronisasi OLT gagal. Periksa log aplikasi untuk detailnya.';
+            : alert_message('data-sinkronisasi-olt-gagal-periksa-log-aplikasi-untuk-detailnya');
         unset($payload['last_error']);
     }
     if ($ok && $type === 'onu-ethernet-port') {
@@ -125,10 +125,10 @@ function whatsapp_fields_read_result(int $userId, string $provider): array
         $result = internal_api_request($userId, 'whatsapp.fields.read', ['provider' => $provider]);
     } catch (Throwable $error) {
         error_log('[LINNMS] WhatsApp fields API: ' . $error->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data gateway tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => alert_message('data-data-gateway-tidak-dapat-dimuat')]];
     }
     if (empty($result['ok'])) {
-        return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Gateway tidak dikenal.']];
+        return ['status' => 422, 'payload' => ['ok' => false, 'message' => alert_message('whatsapp-gateway-tidak-dikenal')]];
     }
     $data = is_array($result['data'] ?? null) ? $result['data'] : [];
     $whatsappDefinition = is_array($data['definition'] ?? null) ? $data['definition'] : [];
@@ -153,7 +153,7 @@ function dashboard_detail_result(int $userId, array $query): array
     try {
         $category = trim((string)($query['category'] ?? ''));
         $detailRead = internal_api_request($userId, 'dashboard.detail.read', $query);
-        if (empty($detailRead['ok'])) return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Kategori dashboard tidak dikenal.']];
+        if (empty($detailRead['ok'])) return ['status' => 422, 'payload' => ['ok' => false, 'message' => alert_message('data-kategori-dashboard-tidak-dikenal')]];
         $detailData = is_array($detailRead['data'] ?? null) ? $detailRead['data'] : [];
         $categoryMeta = [
             'total_devices' => ['kind' => 'device'],
@@ -168,7 +168,7 @@ function dashboard_detail_result(int $userId, array $query): array
             'problem_onus' => ['kind' => 'onu'],
         ];
         if (!isset($categoryMeta[$category])) {
-            return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Kategori dashboard tidak dikenal.']];
+            return ['status' => 422, 'payload' => ['ok' => false, 'message' => alert_message('data-kategori-dashboard-tidak-dikenal')]];
         }
         $detailKind = (string)$categoryMeta[$category]['kind'];
 
@@ -244,7 +244,7 @@ function dashboard_detail_result(int $userId, array $query): array
                                 ? 'Aktif'
                                 : ($driverStatus === 'DOWN'
                                     ? 'Tidak terjangkau'
-                                    : ($driverStatus === 'ERROR' ? 'Perlu perhatian' : 'Belum aktif')));
+                                    : ($driverStatus === 'ERROR' ? 'Perlu perhatian' : alert_message('data-belum-aktif'))));
                         $port = (int)($device['snmp_port'] ?? 0);
                         $address = display_text($device['ip_address'] ?? null);
                         if ($address !== 'N/A' && $port > 0) $address .= ':' . $port;
@@ -373,7 +373,7 @@ function dashboard_detail_result(int $userId, array $query): array
         ]];
     } catch (Throwable $e) {
         error_log('Dashboard detail failed: ' . $e->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data kategori tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => alert_message('data-data-kategori-tidak-dapat-dimuat')]];
     }
 }
 
@@ -389,7 +389,7 @@ function recent_activity_result(int $userId, array $query): array
         $activityDevice = (string)($activityRead['device'] ?? '');
         $recentActivityEmptyText = trim($activitySearch) !== '' || trim($activityDevice) !== ''
             || trim((string)($activityRead['category'] ?? '')) !== ''
-            ? 'Tidak ditemukan.' : 'Belum ada aktivitas terbaru';
+            ? alert_message('data-tidak-ditemukan') : alert_message('data-belum-ada-aktivitas-terbaru');
         ob_start();
         require project_path('view', 'partials', 'dashboard', 'recent-activity.php');
         $html = (string)ob_get_clean();
@@ -456,6 +456,6 @@ function recent_activity_result(int $userId, array $query): array
         return ['status' => 200, 'payload' => $payload];
     } catch (Throwable $e) {
         error_log('Recent activity polling failed: ' . $e->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Aktivitas terbaru tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => alert_message('data-aktivitas-terbaru-tidak-dapat-dimuat')]];
     }
 }

@@ -12,7 +12,7 @@ function connection_test_result(int $userId, array $input): array
         'device' => connection_test_device_result($userId, $input),
         'telegram' => connection_test_telegram_result($userId, $input),
         'whatsapp' => connection_test_whatsapp_result($userId, $input),
-        default => ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Jenis tes koneksi tidak dikenal.']],
+        default => ['status' => 422, 'payload' => ['ok' => false, 'message' => alert_message('connection-test-jenis-tes-koneksi-tidak-dikenal')]],
     };
 }
 
@@ -40,24 +40,24 @@ function connection_test_device_result(int $userId, array $input): array
         error_log('[LINNMS] Tes koneksi web: ' . $error->getMessage());
         return [
             'status' => 502,
-            'payload' => ['ok' => false, 'message' => 'Tes koneksi tidak dapat dijalankan.'],
+            'payload' => ['ok' => false, 'message' => alert_message('connection-test-tes-koneksi-tidak-dapat-dijalankan')],
         ];
     }
 
     $ok = !empty($result['ok']);
     $code = trim((string)($result['code'] ?? ''));
     $message = match ($code) {
-        'ok' => 'Koneksi perangkat berhasil.',
-        'validation' => 'Periksa kembali data perangkat yang diisi.',
-        'not_found' => 'Perangkat tidak ditemukan.',
-        'forbidden' => 'Akses perangkat tidak diizinkan.',
-        'unsupported' => 'Tes koneksi belum tersedia untuk perangkat ini.',
-        'device_unreachable' => 'Perangkat tidak dapat dijangkau. Periksa alamat, port, dan kredensialnya.',
-        'device_auth_failed' => 'Autentikasi perangkat gagal. Periksa kredensialnya.',
-        'device_rejected' => 'Perangkat menolak tes koneksi.',
-        'conflict' => 'Perangkat sedang diproses. Coba lagi.',
-        'internal' => 'Tes koneksi tidak dapat diproses.',
-        default => $ok ? 'Koneksi perangkat berhasil.' : 'Tes koneksi gagal.',
+        'ok' => alert_message('connection-test-koneksi-perangkat-berhasil'),
+        'validation' => alert_message('connection-test-periksa-kembali-data-perangkat-yang-diisi'),
+        'not_found' => alert_message('live-perangkat-tidak-ditemukan'),
+        'forbidden' => alert_message('live-akses-perangkat-tidak-diizinkan'),
+        'unsupported' => alert_message('connection-test-tes-koneksi-belum-tersedia-untuk-perangkat-ini'),
+        'device_unreachable' => alert_message('connection-test-perangkat-tidak-dapat-dijangkau-periksa-alamat-port-dan-kredensialnya'),
+        'device_auth_failed' => alert_message('connection-test-autentikasi-perangkat-gagal-periksa-kredensialnya'),
+        'device_rejected' => alert_message('connection-test-perangkat-menolak-tes-koneksi'),
+        'conflict' => alert_message('connection-test-perangkat-sedang-diproses-coba-lagi'),
+        'internal' => alert_message('connection-test-tes-koneksi-tidak-dapat-diproses'),
+        default => $ok ? alert_message('connection-test-koneksi-perangkat-berhasil') : alert_message('connection-test-tes-koneksi-gagal'),
     };
     $status = $ok ? 200 : match ($code) {
         'validation', 'unsupported' => 422,
@@ -102,13 +102,13 @@ function connection_test_telegram_result(int $userId, array $input): array
         ]);
     $code = connection_test_reason($result);
     $message = match ($code) {
-        'ok' => 'Pesan berhasil terkirim',
-        'unsupported' => 'Telegram belum tersedia',
-        'token_required' => 'Token Bot wajib diisi',
-        'chat_required' => 'Chat ID wajib diisi',
-        'chat_invalid' => 'Chat ID harus berupa angka',
-        'device_rejected' => 'Pesan gagal dikirim',
-        default => linnms_action_code_message($result, 'Tes koneksi gagal'),
+        'ok' => alert_message('connection-test-pesan-berhasil-terkirim'),
+        'unsupported' => alert_message('telegram-telegram-belum-tersedia'),
+        'token_required' => alert_message('telegram-token-bot-wajib-diisi'),
+        'chat_required' => alert_message('connection-test-chat-id-wajib-diisi'),
+        'chat_invalid' => alert_message('telegram-chat-id-harus-berupa-angka'),
+        'device_rejected' => alert_message('connection-test-pesan-gagal-dikirim'),
+        default => linnms_action_code_message($result, alert_message('connection-test-tes-koneksi-gagal-2')),
     };
     $status = match ($code) {
         'ok' => 200,
@@ -133,12 +133,12 @@ function connection_test_whatsapp_result(int $userId, array $input): array
     $result = connection_test_request($userId, 'whatsapp', $data);
     $code = connection_test_reason($result);
     $message = match ($code) {
-        'ok' => 'Pesan berhasil terkirim',
-        'unsupported' => 'WhatsApp belum tersedia.',
-        'missing_fields' => 'Lengkapi kolom wajib.',
-        'group_invalid' => 'Group ID WhatsApp tidak valid.',
-        'target_invalid' => 'Nomor tujuan tidak valid.',
-        'device_rejected' => 'Pesan gagal dikirim',
+        'ok' => alert_message('connection-test-pesan-berhasil-terkirim'),
+        'unsupported' => alert_message('connection-test-whatsapp-belum-tersedia'),
+        'missing_fields' => alert_message('whatsapp-lengkapi-kolom-wajib'),
+        'group_invalid' => alert_message('connection-test-group-id-whatsapp-tidak-valid'),
+        'target_invalid' => alert_message('connection-test-nomor-tujuan-tidak-valid'),
+        'device_rejected' => alert_message('connection-test-pesan-gagal-dikirim'),
         default => linnms_action_code_message($result, 'Tes WhatsApp mengalami kesalahan internal.'),
     };
     $status = match ($code) {
