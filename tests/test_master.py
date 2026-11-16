@@ -47,9 +47,9 @@ class MasterContractTest(unittest.TestCase):
         self.assertIn("permissions:\n  contents: write", MASTER)
         self.assertIn("secrets.LINNMS_MONITORING_TOKEN_GIT", MASTER)
 
-    def test_image_still_reads_staging_master_directly(self):
+    def test_release_build_uses_independent_source(self):
         self.assertIn("github.com/${TARGET_INPUT}.git", BUILD)
-        self.assertIn("TARGET_INPUT: RamonVeredic/linnms_deplov", MASTER)
+        self.assertIn("TARGET_INPUT: RamonVeredic/LINNMS-Staging", MASTER)
         self.assertIn("TARGET_INPUT: RamonVeredic/linnms_deplov", BUILD)
         self.assertIn("LINNMS_MODUL: RamonVeredic/linnms-protect", BUILD)
         self.assertIn("clone -q --depth 1 --branch master", BUILD)
