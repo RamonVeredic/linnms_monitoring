@@ -33,7 +33,7 @@ jobs:
       - name: Read source
         env:
           LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
-          TARGET_INPUT: RamonVeredic/linnms_deplov
+          TARGET_INPUT: RamonVeredic/LINNMS-Staging
           SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.sha || '' }}
         shell: bash
         run: |
