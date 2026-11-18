@@ -211,14 +211,6 @@
         </div>
     </div>
     <?php
-    $browserAlertMessages = array_filter(
-        alert_messages(),
-        static fn(string $key): bool => str_starts_with($key, 'browser-'),
-        ARRAY_FILTER_USE_KEY
-    );
-    ?>
-    <script type="application/json" id="linnms-alert-messages"><?= json_encode($browserAlertMessages, JSON_HEX_TAG | JSON_THROW_ON_ERROR) ?></script>
-    <?php
     $scriptAssets = ['assets/js/toast.js', 'assets/js/app.js', 'assets/js/ajax/client.js'];
     if (in_array($page, ['notification', 'settings-admin'], true)) $scriptAssets[] = 'assets/js/instant-toggle.js';
     if ($serviceExpiryTimestamp > 0) $scriptAssets[] = 'assets/js/service-expiry.js';

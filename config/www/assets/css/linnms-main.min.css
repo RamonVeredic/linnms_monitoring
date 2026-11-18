@@ -516,9 +516,7 @@ button.is-loading > i {
   border-color: var(--border-hover);
   color: var(--text-primary);
   transform: translateY(-1px);
-  box-shadow:
-    0 6px 22px rgba(91, 141, 239, 0.3),
-    0 0 0 3px var(--tint-primary);
+  box-shadow: 0 0 0 3px var(--tint-primary);
 }
 .button.button-danger {
   background: rgba(234, 57, 65, 0.16);
@@ -931,6 +929,19 @@ button.is-loading > i {
   gap: 8px;
   min-width: 0;
   max-width: 100%;
+}
+.app-log-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 .public-log-message .public-log-text {
   display: block;

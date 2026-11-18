@@ -154,7 +154,7 @@
         const response = await window.linnmsDashboardAjax.connectionStatus(ids);
         if (response.status === 401) { stopped = true; return; }
         const payload = await response.json();
-        if (!response.ok || payload.ok !== true) throw new Error(window.linnmsAlertMessage('browser-dashboard-status-perangkat-belum-dapat-dibaca'));
+        if (!response.ok || payload.ok !== true) throw new Error('Status perangkat belum dapat dibaca.');
         await Promise.all(currentRows.map((row) => updateScanProgress(row)));
         const changed = currentRows.some((row) => {
           const state = payload.statuses?.[row.dataset.deviceRowId];
@@ -282,13 +282,13 @@
       responseStatus = response.status;
       if (response.status === 401) {
         stopped = true;
-        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', window.linnmsAlertMessage('browser-dashboard-sesi-berakhir-silakan-login-kembali-untuk-memuat-aktivitas'));
+        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', 'Sesi berakhir. Silakan login kembali untuk memuat aktivitas.');
         return;
       }
       const payload = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(payload?.message || window.linnmsAlertMessage('browser-dashboard-request-aktivitas-gagal-http-value1', { value1: response.status }));
+      if (!response.ok) throw new Error(payload?.message || `Request aktivitas gagal (HTTP ${response.status}).`);
       if (!payload || payload.ok !== true) {
-        throw new Error(payload?.message || window.linnmsAlertMessage('browser-dashboard-respons-aktivitas-tidak-valid'));
+        throw new Error(payload?.message || 'Respons aktivitas tidak valid.');
       }
       page = Math.max(1, Number(payload.activity_page || 1));
       if (applyPayload(payload) && resetScroll) resultsHost.scrollTop = 0;
@@ -297,7 +297,7 @@
         failed = true;
         console.error(error);
         const message = String(error?.message || '').trim()
-          || (responseStatus > 0 ? window.linnmsAlertMessage('browser-dashboard-aktivitas-gagal-dimuat-http-responsestatus', { responseStatus }) : window.linnmsAlertMessage('browser-dashboard-aktivitas-gagal-dimuat'));
+          || (responseStatus > 0 ? `Aktivitas gagal dimuat (HTTP ${responseStatus}).` : 'Aktivitas gagal dimuat.');
         if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', message);
       }
     } finally {
@@ -326,11 +326,11 @@
         const response = await window.linnmsDashboardAjax.scanStatus(rowId);
         if (response.status === 401) {
           activeDiscoveryPolls.delete(rowId);
-          notifyDiscovery('error', window.linnmsAlertMessage('browser-dashboard-sesi-berakhir-silakan-login-kembali'));
+          notifyDiscovery('error', 'Sesi berakhir. Silakan login kembali.');
           return;
         }
         const result = await response.json();
-        if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsAlertMessage('browser-dashboard-status-sinkronisasi-belum-dapat-dibaca'));
+        if (!response.ok || result.ok !== true) throw new Error(result.message || 'Status sinkronisasi belum dapat dibaca.');
         if (result.active) {
           const row = document.querySelector(`#devicesTable tr[data-device-row-id="${CSS.escape(String(rowId))}"]`);
           if (row) await updateScanProgress(row);
@@ -349,6 +349,31 @@
   };
 
   document.addEventListener('submit', async (event) => {
+    const deviceForm = event.target instanceof HTMLFormElement && event.target.matches('[data-dashboard-device-sync]')
+      ? event.target : null;
+    if (deviceForm) {
+      event.preventDefault();
+      const button = deviceForm.querySelector('button[type="submit"]');
+      if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      const icon = button.querySelector('i');
+      icon?.classList.add('sync-loading-spinner');
+      try {
+        const response = await window.linnmsDashboardAjax.syncDevice(deviceForm);
+        const result = await response.json();
+        if (!response.ok || result.ok !== true) throw new Error(result.message || 'Sinkronisasi perangkat gagal.');
+        notifyDiscovery('success', result.message || 'Sinkronisasi perangkat berhasil.');
+      } catch (error) {
+        notifyDiscovery('error', String(error?.message || 'Sinkronisasi perangkat gagal.'));
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        icon?.classList.remove('sync-loading-spinner');
+        void load();
+      }
+      return;
+    }
     const discoveryForm = event.target instanceof HTMLFormElement && event.target.matches('[data-dashboard-discovery]')
       ? event.target : null;
     if (!discoveryForm) return;
@@ -363,7 +388,7 @@
         notifyDiscovery('info', 'Data sudah terupdate.');
         return;
       }
-      if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsAlertMessage('browser-dashboard-sinkronisasi-olt-gagal-dimulai'));
+      if (!response.ok || result.ok !== true) throw new Error(result.message || 'Sinkronisasi OLT gagal dimulai.');
       const row = discoveryForm.closest('tr');
       const time = row?.querySelector('.conn-time');
       if (time) {
@@ -378,7 +403,7 @@
       pollDiscovery(rowId);
       void load();
     } catch (error) {
-      notifyDiscovery('error', String(error?.message || window.linnmsAlertMessage('browser-dashboard-sinkronisasi-olt-gagal-dimulai')));
+      notifyDiscovery('error', String(error?.message || 'Sinkronisasi OLT gagal dimulai.'));
       void load();
     }
   });

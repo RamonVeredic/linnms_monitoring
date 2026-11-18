@@ -430,23 +430,23 @@
           body: new URLSearchParams({csrf: button.dataset.csrf || '', olt_row_id: button.dataset.oltRowId || ''}).toString(),
         });
         const payload = await response.json();
-        if (!response.ok || payload?.ok !== true) throw new Error(payload?.message || window.linnmsAlertMessage('browser-onu-registration-refresh-uncfg-gagal'));
+        if (!response.ok || payload?.ok !== true) throw new Error(payload?.message || 'Refresh Uncfg gagal.');
         const pageUrl = new URL(form.action, location.href);
         pageUrl.searchParams.set('page', 'add-onu');
         const pageResponse = await window.linnmsAjax.request(pageUrl, {credentials: 'same-origin', cache: 'no-store'});
-        if (!pageResponse.ok) throw new Error(window.linnmsAlertMessage('browser-onu-registration-daftar-onu-gagal-dimuat-ulang'));
+        if (!pageResponse.ok) throw new Error('Daftar ONU gagal dimuat ulang.');
         const pageHtml = await pageResponse.text();
         const next = new DOMParser().parseFromString(pageHtml, 'text/html').querySelector('[data-add-onu-results]');
-        if (!next) throw new Error(window.linnmsAlertMessage('browser-onu-registration-daftar-onu-gagal-dimuat-ulang'));
+        if (!next) throw new Error('Daftar ONU gagal dimuat ulang.');
         results.innerHTML = next.innerHTML;
         applyFilter();
-        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('success', payload.message || window.linnmsAlertMessage('browser-onu-registration-onu-uncfg-diperbarui'));
+        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('success', payload.message || 'ONU Uncfg diperbarui.');
       } catch (error) {
         if (group) setLoading([group], false);
         button.disabled = false;
         button.removeAttribute('aria-busy');
         if (label) label.textContent = 'Refresh Uncfg';
-        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', error?.message || window.linnmsAlertMessage('browser-onu-registration-refresh-uncfg-gagal'));
+        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', error?.message || 'Refresh Uncfg gagal.');
       }
     }
   });

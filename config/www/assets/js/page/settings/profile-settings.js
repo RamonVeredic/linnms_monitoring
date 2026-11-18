@@ -26,13 +26,13 @@
         });
         const payload = await response.json();
         if (!response.ok || payload.ok !== true) {
-          throw new Error(window.linnmsAlertMessage('browser-profile-settings-gagal-mengaktifkan-perangkat'));
+          throw new Error('Gagal mengaktifkan perangkat.');
         }
         editableToggles.forEach((control) => { control.defaultChecked = control.checked; });
         window.linnmsNotify?.('success', payload.message);
       } catch (error) {
         editableToggles.forEach((control) => { control.checked = control.defaultChecked; });
-        window.linnmsNotify?.('error', window.linnmsAlertMessage('browser-profile-settings-gagal-mengaktifkan-perangkat'));
+        window.linnmsNotify?.('error', 'Gagal mengaktifkan perangkat.');
       } finally {
         saving = false;
         driverForm.removeAttribute('aria-busy');
@@ -74,15 +74,15 @@
     if (!file || !importForm) return;
     const name = file.name.trim();
     if (!name.toLowerCase().endsWith('.csv')) {
-      rejectImport(window.linnmsAlertMessage('browser-profile-settings-file-harus-menggunakan-ekstensi-csv'));
+      rejectImport('File harus menggunakan ekstensi .csv.');
       return;
     }
     if (file.size < 1) {
-      rejectImport(window.linnmsAlertMessage('browser-profile-settings-file-csv-kosong'));
+      rejectImport('File CSV kosong.');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      rejectImport(window.linnmsAlertMessage('browser-profile-settings-ukuran-file-csv-maksimal-2-mb'));
+      rejectImport('Ukuran file CSV maksimal 2 MB.');
       return;
     }
 
@@ -95,11 +95,11 @@
         column.trim().replace(/^"|"$/g, '').toLowerCase()
       );
       if (header.join(',') !== 'mac_address,nama,alamat') {
-        rejectImport(window.linnmsAlertMessage('browser-profile-settings-header-csv-harus-tepat-mac-address-nama-alamat'));
+        rejectImport('Header CSV harus tepat: mac_address,nama,alamat.');
         return;
       }
     } catch {
-      rejectImport(window.linnmsAlertMessage('browser-profile-settings-file-csv-tidak-dapat-dibaca-oleh-browser'));
+      rejectImport('File CSV tidak dapat dibaca oleh browser.');
       return;
     }
 

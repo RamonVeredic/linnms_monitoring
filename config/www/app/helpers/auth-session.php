@@ -10,7 +10,7 @@ function csrf_token(): string
     return $_SESSION['csrf'];
 }
 
-function redirect_invalid_session_to_login(?string $message = null): never
+function redirect_invalid_session_to_login(string $message = 'Sesi login tidak valid atau telah berakhir. Silakan masuk kembali.'): never
 {
 
     $_SESSION = [];
@@ -18,7 +18,6 @@ function redirect_invalid_session_to_login(?string $message = null): never
         session_regenerate_id(true);
     }
     csrf_token();
-    $message ??= alert_message('session-invalid');
     if ($message !== '') {
         flash('warning', $message);
     }
@@ -43,8 +42,9 @@ function verify_csrf(): void
     if (function_exists('application_log_event')) {
         application_log_event(current_user_id() ?: null, 'Keamanan',
             mb_substr(trim((string)($_POST['action'] ?? 'unknown_post')), 0, 120),
-            'error', error_log_message('web-csrf-request-rejected'), ['http_status' => 419], current_username() ?: null);
+            'warning', 'Request ditolak', ['http_status' => 419], current_username() ?: null);
     }
+    $GLOBALS['LINNMS_SKIP_ACTION_LOG'] = true;
 
     if (is_logged_in()) {
 

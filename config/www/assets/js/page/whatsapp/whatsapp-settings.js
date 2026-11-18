@@ -74,7 +74,7 @@
     if (groupHint instanceof HTMLElement) {
       groupHint.textContent = supportsGroupListing
         ? 'Minta daftar grup dari gateway, lalu pilih tujuan.'
-        : window.linnmsAlertMessage('browser-whatsapp-settings-gateway-ini-tidak-menyediakan-daftar-grup-pilih-opsi-group');
+        : 'Gateway ini tidak menyediakan daftar grup. Pilih opsi Group ID manual.';
     }
   };
 
@@ -110,9 +110,9 @@
       body.set('action', 'list_whatsapp_groups');
       const response = await window.linnmsAjax.request(window.location.href, { ...requestOptions, body });
       const result = await response.json().catch(() => ({}));
-      if (result?.ok !== true) throw new Error(String(result?.message || window.linnmsAlertMessage('browser-whatsapp-settings-gagal-meminta-daftar-grup')));
+      if (result?.ok !== true) throw new Error(String(result?.message || 'Gagal meminta daftar grup.'));
       const groups = Array.isArray(result.groups) ? result.groups : [];
-      if (groups.length === 0) throw new Error(window.linnmsAlertMessage('browser-whatsapp-settings-grup-tidak-ditemukan-pada-gateway'));
+      if (groups.length === 0) throw new Error('Grup tidak ditemukan pada gateway.');
       const previous = groupSelect instanceof HTMLSelectElement ? groupSelect.value : '';
       const options = [new Option('Pilih grup WhatsApp', '')];
       groups.forEach((item) => options.push(new Option(item.label, item.id)));
@@ -125,7 +125,7 @@
       }
       notify(true, result.message);
     } catch (error) {
-      notify(false, error instanceof Error ? error.message : window.linnmsAlertMessage('browser-whatsapp-settings-gagal-meminta-daftar-grup'));
+      notify(false, error instanceof Error ? error.message : 'Gagal meminta daftar grup.');
     } finally {
       groupButton.disabled = false;
       groupButton.innerHTML = original;
@@ -138,7 +138,7 @@
     const required = [...credentialFields.querySelectorAll('[name="whatsapp_base_url"], [data-whatsapp-generator-session], [data-whatsapp-generator-secret]')];
     const invalid = required.find((input) => input instanceof HTMLInputElement && input.value.trim() === '');
     if (invalid instanceof HTMLInputElement) {
-      invalid.setCustomValidity(window.linnmsAlertMessage('browser-whatsapp-settings-kolom-ini-wajib-diisi-untuk-membuat-token'));
+      invalid.setCustomValidity('Kolom ini wajib diisi untuk membuat token.');
       invalid.reportValidity();
       invalid.addEventListener('input', () => invalid.setCustomValidity(''), { once: true });
       return;
@@ -152,7 +152,7 @@
       const response = await window.linnmsAjax.request(window.location.href, { ...requestOptions, body });
       const result = await response.json().catch(() => ({}));
       if (result?.ok !== true || typeof result.token !== 'string' || result.token === '') {
-        throw new Error(String(result?.message || window.linnmsAlertMessage('browser-whatsapp-settings-token-belum-berhasil-dibuat')));
+        throw new Error(String(result?.message || 'Token belum berhasil dibuat.'));
       }
       const token = credentialFields.querySelector('[data-whatsapp-token-input]');
       if (token instanceof HTMLInputElement) token.value = result.token;
@@ -160,9 +160,9 @@
       credentialFields.querySelectorAll('[data-whatsapp-generator-session], [data-whatsapp-generator-secret]').forEach((input) => {
         if (input instanceof HTMLInputElement) input.required = false;
       });
-      notify(true, String(result.message || window.linnmsAlertMessage('browser-whatsapp-settings-token-session-berhasil-dibuat')));
+      notify(true, String(result.message || 'Token session berhasil dibuat.'));
     } catch (error) {
-      notify(false, error instanceof Error ? error.message : window.linnmsAlertMessage('browser-whatsapp-settings-token-belum-berhasil-dibuat'));
+      notify(false, error instanceof Error ? error.message : 'Token belum berhasil dibuat.');
     } finally {
       button.disabled = false;
       button.innerHTML = original;
@@ -200,7 +200,7 @@
       resetGroupOptions();
       updateTarget();
     } catch {
-      updateProviderInfo({ info: window.linnmsAlertMessage('browser-whatsapp-settings-field-gateway-belum-dapat-dimuat-muat-ulang-halaman') });
+      updateProviderInfo({ info: 'Field gateway belum dapat dimuat. Muat ulang halaman.' });
     }
   });
 
@@ -221,9 +221,9 @@
         headers: { ...requestOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
       });
       const result = await response.json().catch(() => ({}));
-      notify(result?.ok === true, String(result?.message || (result?.ok ? window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-berhasil') : window.linnmsAlertMessage('browser-telegram-settings-tes-koneksi-gagal'))));
+      notify(result?.ok === true, String(result?.message || (result?.ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal')));
     } catch {
-      notify(false, window.linnmsAlertMessage('browser-whatsapp-settings-tes-koneksi-belum-dapat-diproses-periksa-koneksi-lalu-coba'));
+      notify(false, 'Tes koneksi belum dapat diproses. Periksa koneksi lalu coba kembali');
     } finally {
       testButton.disabled = false;
       testButton.innerHTML = original;

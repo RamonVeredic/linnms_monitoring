@@ -26,7 +26,7 @@ function handle_settings_action(string $action): bool
     $uid = current_user_id();
 
     if ($action === 'run_update') {
-        flash('warning', alert_message('settings-linnms-sekarang-diperbarui-melalui-docker-image-jalankan-docker-compose'));
+        flash('warning', 'LINNMS sekarang diperbarui melalui Docker image. Jalankan: docker compose pull && docker compose up -d --force-recreate');
         redirect(public_settings_url() . '#upgrade');
     }
 
@@ -40,8 +40,8 @@ function handle_settings_action(string $action): bool
         }
         $result = linnms_settings_action_request($uid, $action, $data);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? alert_message('settings-berhasil-menyimpan-notifikasi')
-            : linnms_action_code_message($result, alert_message('settings-gagal-menyimpan-notifikasi')));
+            ? '"Berhasil menyimpan notifikasi"'
+            : linnms_action_code_message($result, 'Gagal menyimpan notifikasi'));
         redirect($returnPage);
     }
 
@@ -61,30 +61,30 @@ function handle_settings_action(string $action): bool
         $definition = $definitions[$key] ?? null;
         $raw = trim((string)($_POST['setting_value'] ?? ''));
         $error = null;
-        if (!is_array($definition)) $error = alert_message('settings-pengaturan-notifikasi-tidak-valid');
+        if (!is_array($definition)) $error = 'Pengaturan notifikasi tidak valid.';
         elseif ($definition[1] === 'number') {
-            if ($raw === '' || !is_numeric($raw)) $error = alert_message('settings-field-wajib-berupa-angka', ['label' => $definition[0]]);
+            if ($raw === '' || !is_numeric($raw)) $error = $definition[0] . ' wajib berupa angka.';
             elseif (!is_finite((float)$raw)) {
-                $error = alert_message('settings-field-harus-berupa-angka-yang-valid', ['label' => $definition[0]]);
+                $error = $definition[0] . ' harus berupa angka yang valid.';
             }
         }
         if ($error !== null) linnms_action_result(false, $error, public_page_url('notification') . '#notification-settings');
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? alert_message('settings-field-berhasil-disimpan', ['label' => $definition[0]])
-            : linnms_action_code_message($result, alert_message('settings-pengaturan-notifikasi-gagal-disimpan')),
+            ? $definition[0] . ' berhasil disimpan.'
+            : linnms_action_code_message($result, 'Pengaturan notifikasi gagal disimpan.'),
             public_page_url('notification') . '#notification-settings');
     }
 
     if ($action === 'save_notification_devices') {
         $ids = $_POST['notification_device_ids'] ?? [];
         if (!is_array($ids)) {
-            linnms_action_result(false, alert_message('settings-pilihan-perangkat-tidak-valid'), public_page_url('notification') . '#notification-devices');
+            linnms_action_result(false, 'Pilihan perangkat tidak valid.', public_page_url('notification') . '#notification-devices');
         }
         $result = linnms_settings_action_request($uid, $action, ['notification_device_ids' => $ids]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? alert_message('settings-pilihan-perangkat-notifikasi-berhasil-disimpan')
-            : linnms_action_code_message($result, alert_message('settings-pilihan-perangkat-notifikasi-gagal-disimpan')),
+            ? 'Pilihan perangkat notifikasi berhasil disimpan.'
+            : linnms_action_code_message($result, 'Pilihan perangkat notifikasi gagal disimpan.'),
             public_page_url('notification') . '#notification-devices');
     }
 
@@ -108,19 +108,19 @@ function handle_settings_action(string $action): bool
         ];
         $definition = $definitions[$key] ?? null;
         if (!is_array($definition)) {
-            flash('error', alert_message('settings-pengaturan-yang-dipilih-tidak-valid'));
+            flash('error', 'Pengaturan yang dipilih tidak valid.');
             redirect(public_settings_url() . '#sync');
         }
         [$label, $anchor] = $definition;
         if (preg_match('/^-?\d+$/', $raw) !== 1) {
-            flash('error', alert_message('settings-field-harus-berupa-angka-bulat', ['label' => $label]));
+            flash('error', $label . ' harus berupa angka bulat.');
             redirect(public_settings_url() . '#' . $anchor);
         }
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
         $code = (string)linnms_action_reason($result, 'internal');
         flash(!empty($result['ok']) ? ($code === 'unchanged' ? 'info' : 'success') : 'error',
-            !empty($result['ok']) ? ($code === 'unchanged' ? alert_message('settings-field-unchanged', ['label' => $label]) : alert_message('settings-field-berhasil-disimpan', ['label' => $label]))
-                : linnms_action_code_message($result, alert_message('settings-field-gagal-disimpan', ['label' => $label])));
+            !empty($result['ok']) ? ($code === 'unchanged' ? 'Tidak ada perubahan pada ' . $label . '.' : $label . ' berhasil disimpan.')
+                : linnms_action_code_message($result, $label . ' gagal disimpan.'));
         redirect(public_settings_url() . '#' . $anchor);
     }
 
@@ -133,8 +133,8 @@ function handle_settings_action(string $action): bool
         }
         $result = linnms_settings_action_request($uid, $action, $data);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? alert_message('settings-jadwal-dan-durasi-sinkronisasi-berhasil-disimpan')
-            : linnms_action_code_message($result, alert_message('settings-jadwal-sinkronisasi-gagal-disimpan')));
+            ? 'Jadwal dan durasi sinkronisasi berhasil disimpan.'
+            : linnms_action_code_message($result, 'Jadwal sinkronisasi gagal disimpan.'));
         redirect(public_settings_url() . '#sync');
     }
 
@@ -145,15 +145,15 @@ function handle_settings_action(string $action): bool
         ]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
             ? 'Pengaturan perangkat disimpan.'
-            : linnms_action_code_message($result, alert_message('settings-gagal-mengaktifkan-perangkat')),
+            : linnms_action_code_message($result, 'Gagal mengaktifkan perangkat.'),
             public_settings_url() . '#drivers');
     }
 
     $result = linnms_settings_action_request($uid, $action, []);
     $code = (string)linnms_action_reason($result, 'internal');
-    if ($code === 'inactive') flash('warning', alert_message('settings-akses-belum-aktif'));
-    elseif ($code === 'unchanged') flash('warning', alert_message('settings-tidak-ada-perubahan'));
-    elseif (!empty($result['ok'])) flash('success', alert_message('settings-akses-diperbarui'));
-    else flash('error', linnms_action_code_message($result, alert_message('settings-akses-tidak-dapat-diperbarui')));
+    if ($code === 'inactive') flash('warning', 'Akses belum aktif.');
+    elseif ($code === 'unchanged') flash('warning', 'Tidak ada perubahan.');
+    elseif (!empty($result['ok'])) flash('success', 'Akses diperbarui.');
+    else flash('error', linnms_action_code_message($result, 'Akses tidak dapat diperbarui.'));
     redirect(public_settings_url() . '#drivers');
 }

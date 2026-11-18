@@ -214,7 +214,7 @@
     event.preventDefault();
     const save = form.querySelector('button[type="submit"]');
     if (save) save.disabled = true;
-    setStatus(window.linnmsAlertMessage('browser-olt-details-menyimpan-perubahan-value1', { value1: form.elements.olt_port_ref?.value || 'PON' }), 'loading');
+    setStatus(`Menyimpan perubahan ${form.elements.olt_port_ref?.value || 'PON'}...`, 'loading');
 
     try {
       const response = await window.linnmsAjax.request(`${liveUrl}?type=olt-port-update&ref=${encodeURIComponent(rowRef)}`, {
@@ -226,16 +226,16 @@
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload || payload.ok !== true) {
-        throw new Error(payload?.message || window.linnmsAlertMessage('browser-olt-details-data-pon-belum-tersedia'));
+        throw new Error(payload?.message || 'Data PON belum tersedia.');
       }
 
       const card = form.closest('.olt-pon-card');
       if (card && payload.port) {
         card.replaceWith(renderPort(payload.port, true));
       }
-      setStatus(payload.message || window.linnmsAlertMessage('browser-olt-details-pon-berhasil-diperbarui-dan-diverifikasi'), 'ok');
+      setStatus(payload.message || 'PON berhasil diperbarui dan diverifikasi.', 'ok');
     } catch (error) {
-      setStatus(window.linnmsAlertMessage('browser-olt-details-perubahan-pon-belum-berhasil-disimpan'), 'error');
+      setStatus('Perubahan PON belum berhasil disimpan.', 'error');
       if (save) save.disabled = false;
     }
   });
@@ -263,7 +263,7 @@
         ? message
         : (withStatus > 0
             ? `${usable.length} PON`
-            : window.linnmsAlertMessage('browser-olt-details-value1-pon-status-belum-tersedia', { value1: usable.length })),
+            : `${usable.length} PON status belum tersedia`),
       withStatus > 0 ? 'ok' : 'error'
     );
   };
@@ -572,11 +572,11 @@
         );
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload || payload.ok !== true) {
-          throw new Error(payload?.message || window.linnmsAlertMessage('browser-olt-details-data-olt-belum-dapat-diperbarui'));
+          throw new Error(payload?.message || 'Data OLT belum dapat diperbarui.');
         }
 
         const warnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
-        setStatus(warnings.length ? warnings.join(' ') : (payload.message || window.linnmsAlertMessage('browser-olt-details-data-olt-diperbarui')));
+        setStatus(warnings.length ? warnings.join(' ') : (payload.message || 'Data OLT diperbarui.'));
 
 
 
@@ -586,7 +586,7 @@
         window.location.replace(url.toString());
       } catch (error) {
         setBusy(false);
-        setStatus(error instanceof Error ? error.message : window.linnmsAlertMessage('browser-olt-details-data-olt-belum-dapat-diperbarui'));
+        setStatus(error instanceof Error ? error.message : 'Data OLT belum dapat diperbarui.');
       }
     });
   });
@@ -601,7 +601,7 @@ document.addEventListener('change', async (event) => {
   };
   if (toggle.dataset.ponFlowControlKnown !== '1') {
     toggle.checked = false;
-    notify('warning', window.linnmsAlertMessage('browser-olt-details-status-flow-control-belum-tersedia-perubahan-tidak-dikirim'));
+    notify('warning', 'Status Flow Control belum tersedia. Perubahan tidak dikirim.');
     return;
   }
   const rowId = toggle.dataset.oltRowId || '';
@@ -612,7 +612,7 @@ document.addEventListener('change', async (event) => {
   const previous = !toggle.checked;
   if (!rowId || !pon || !csrf) {
     toggle.checked = previous;
-    notify('error', window.linnmsAlertMessage('browser-olt-details-data-pon-tidak-lengkap'));
+    notify('error', 'Data PON tidak lengkap.');
     return;
   }
   toggle.disabled = true;
@@ -625,13 +625,13 @@ document.addEventListener('change', async (event) => {
       body: body.toString(),
     });
     const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload || payload.ok !== true) throw new Error(payload?.message || window.linnmsAlertMessage('browser-olt-details-flow-control-gagal-disimpan'));
+    if (!response.ok || !payload || payload.ok !== true) throw new Error(payload?.message || 'Flow Control gagal disimpan.');
     const label = toggle.closest('label')?.querySelector('[data-pon-flow-control-label]');
     if (label) label.textContent = value;
-    notify('success', payload.message || window.linnmsAlertMessage('browser-olt-details-flow-control-tersimpan'));
+    notify('success', payload.message || 'Flow Control tersimpan.');
   } catch (error) {
     toggle.checked = previous;
-    notify('error', error instanceof Error ? error.message : window.linnmsAlertMessage('browser-olt-details-flow-control-gagal-disimpan'));
+    notify('error', error instanceof Error ? error.message : 'Flow Control gagal disimpan.');
   } finally {
     toggle.disabled = false;
   }
@@ -642,7 +642,7 @@ document.addEventListener('change', (event) => {
   if (!toggle) return;
   toggle.checked = !toggle.checked;
   if (typeof window.linnmsNotify === 'function') {
-    window.linnmsNotify('warning', window.linnmsAlertMessage('browser-olt-pon-feature-unsupported', { feature: toggle.dataset.ponUnsupportedToggle || 'Konfigurasi PON' }));
+    window.linnmsNotify('warning', (toggle.dataset.ponUnsupportedToggle || 'Konfigurasi PON') + ' belum didukung untuk perangkat ini.');
   }
 });
 
@@ -675,7 +675,7 @@ document.addEventListener('change', (event) => {
   window.linnmsAjax.request(liveUrl + '?type=olt-pon-status-save', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'fetch'}, body: body.toString() })
     .then((response) => response.json().then((payload) => ({ response, payload })))
     .then(({ response, payload }) => {
-      if (!response.ok || !payload || payload.ok !== true) throw new Error((payload && payload.message) || window.linnmsAlertMessage('browser-olt-details-status-pon-gagal-diubah'));
+      if (!response.ok || !payload || payload.ok !== true) throw new Error((payload && payload.message) || 'Status PON gagal diubah.');
       if (hidden) hidden.value = value;
       if (label) label.textContent = value;
       if (ponCard) {
@@ -698,7 +698,7 @@ document.addEventListener('change', (event) => {
     })
     .catch((error) => {
       toggle.checked = value === 'Disable';
-      notify('error', String((error && error.message) || window.linnmsAlertMessage('browser-olt-details-status-pon-gagal-diubah')));
+      notify('error', String((error && error.message) || 'Status PON gagal diubah.'));
     })
     .finally(() => { toggle.disabled = false; });
 });
@@ -736,7 +736,7 @@ document.addEventListener('change', (event) => {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.message || window.linnmsAlertMessage('browser-olt-details-koneksi-terminal-terputus-buka-kembali-terminal'));
+    if (!response.ok || !result.ok) throw new Error(result.message || 'Koneksi terminal terputus. Buka kembali terminal.');
     return result;
   };
   const disconnect = (state, beacon = false) => {
@@ -768,9 +768,9 @@ document.addEventListener('change', (event) => {
       const result = await request(state, 'exchange', data);
       if (session !== state || state.closed) return;
       if (result.output) state.terminal.write(decode(result.output));
-      if (!result.active) { stop(state, window.linnmsAlertMessage('browser-olt-details-koneksi-terminal-terputus-buka-kembali-terminal')); return; }
+      if (!result.active) { stop(state, 'Koneksi terminal terputus. Buka kembali terminal.'); return; }
     } catch (error) {
-      stop(state, error.message || window.linnmsAlertMessage('browser-olt-details-koneksi-terminal-terputus-buka-kembali-terminal'));
+      stop(state, error.message || 'Koneksi terminal terputus. Buka kembali terminal.');
     } finally {
       state.busy = false;
       schedule(state, state.pending.length ? 0 : 60);
@@ -781,7 +781,7 @@ document.addEventListener('change', (event) => {
     opener = button;
     dialog.showModal();
     setStatus('Menghubungkan…');
-    if (!window.Terminal || !window.FitAddon) { setStatus(window.linnmsAlertMessage('browser-olt-details-terminal-belum-dapat-dimuat-muat-ulang-halaman'), true); return; }
+    if (!window.Terminal || !window.FitAddon) { setStatus('Terminal belum dapat dimuat. Muat ulang halaman.', true); return; }
     screen.replaceChildren();
     const terminal = new window.Terminal({
       cursorBlink: true, cursorStyle: 'bar', fontSize: 14, lineHeight: 1.25, fontFamily: 'Consolas, monospace',
@@ -799,7 +799,7 @@ document.addEventListener('change', (event) => {
     terminal.onData((data) => {
       if (!state.ready || state.closed) return;
       const bytes = encoder.encode(data);
-      if (state.pending.length + bytes.length > 65536) { setStatus(window.linnmsAlertMessage('browser-olt-details-input-terlalu-panjang-kirim-dalam-beberapa-bagian'), true); return; }
+      if (state.pending.length + bytes.length > 65536) { setStatus('Input terlalu panjang. Kirim dalam beberapa bagian.', true); return; }
       const merged = new Uint8Array(state.pending.length + bytes.length);
       merged.set(state.pending); merged.set(bytes, state.pending.length);
       state.pending = merged;
@@ -815,14 +815,14 @@ document.addEventListener('change', (event) => {
         disconnect(state);
         return;
       }
-      if (!result.active) { stop(state, window.linnmsAlertMessage('browser-olt-details-koneksi-terminal-terputus-buka-kembali-terminal')); return; }
+      if (!result.active) { stop(state, 'Koneksi terminal terputus. Buka kembali terminal.'); return; }
       state.ready = true;
       terminal.options.disableStdin = false;
       if (result.output) terminal.write(decode(result.output));
       setStatus('Terhubung', false, true);
       terminal.focus();
       schedule(state);
-    } catch (error) { stop(state, error.message || window.linnmsAlertMessage('browser-olt-details-terminal-belum-dapat-dibuka')); }
+    } catch (error) { stop(state, error.message || 'Terminal belum dapat dibuka.'); }
   };
   document.querySelectorAll('[data-olt-terminal-open]').forEach((button) => button.addEventListener('click', () => open(button)));
   dialog.querySelector('[data-olt-terminal-close]').addEventListener('click', () => dialog.close());
@@ -975,7 +975,7 @@ document.addEventListener('change', (event) => {
   document.querySelectorAll('[data-onu-type-delete]').forEach((form) => {
     form.addEventListener('submit', (event) => {
       const name = form.querySelector('[name="name"]')?.value || '';
-      if (!window.confirm(window.linnmsAlertMessage('browser-confirm-onu-type-delete', { name }))) {
+      if (!window.confirm(`Hapus ONU Type "${name}"?`)) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -1224,7 +1224,7 @@ document.addEventListener('change', (event) => {
     });
     const response = await window.linnmsAjax.request((document.body.dataset.liveUrl || 'live.php') + '?type=olt-uplink-save', {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'fetch'},body:body.toString()});
     const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsAlertMessage('browser-instant-toggle-perubahan-belum-berhasil-disimpan'));
+    if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Perubahan belum berhasil disimpan.');
     if (payload.detail && typeof payload.detail === 'object') portData[ref] = Object.assign({}, portData[ref] || {}, payload.detail);
     if (typeof window.linnmsNotify === 'function') window.linnmsNotify('success', payload.message);
     return payload;
@@ -1310,13 +1310,13 @@ document.addEventListener('change', (event) => {
     if (remove) {
       const name = remove.dataset.oltProfileName || '';
       const kind = remove.dataset.oltProfileKind || '';
-      if (!window.confirm(window.linnmsAlertMessage('browser-confirm-olt-profile-delete', { name }))) return;
+      if (!window.confirm('Hapus profil ' + name + '?')) return;
       (async () => {
         try {
           const body = new URLSearchParams({ csrf: modal.querySelector('input[name="csrf"]').value, olt_row_id: rowId, kind, name });
           const response = await window.linnmsAjax.request(liveUrl + '?type=olt-profile-delete', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'fetch' }, body: body.toString() });
           const payload = await response.json().catch(() => null);
-          if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsAlertMessage('browser-olt-details-profil-belum-berhasil-dihapus'));
+          if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Profil belum berhasil dihapus.');
           notify('success', payload.message);
           window.setTimeout(() => window.location.reload(), 400);
         } catch (error) {
@@ -1341,7 +1341,7 @@ document.addEventListener('change', (event) => {
       });
       const response = await window.linnmsAjax.request(liveUrl + '?type=olt-profile-save', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'fetch' }, body: body.toString() });
       const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsAlertMessage('browser-olt-details-profil-belum-berhasil-disimpan'));
+      if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Profil belum berhasil disimpan.');
       notify('success', payload.message);
       close();
       window.setTimeout(() => window.location.reload(), 400);

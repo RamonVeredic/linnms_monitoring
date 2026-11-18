@@ -61,7 +61,7 @@
     const apiForm = form.querySelector('input[name="action"][value="update_api_olt"]') !== null;
     const validIp = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/;
     const validateIp = () => {
-      if (ip instanceof HTMLInputElement) ip.setCustomValidity(ip.value.trim() === '' || validIp.test(ip.value.trim()) ? '' : window.linnmsAlertMessage('browser-device-edit-modal-periksa-ip-anda'));
+      if (ip instanceof HTMLInputElement) ip.setCustomValidity(ip.value.trim() === '' || validIp.test(ip.value.trim()) ? '' : 'Periksa IP Anda.');
     };
     const showResult = (message, state = '') => {
       if (!(result instanceof HTMLElement)) return;
@@ -110,11 +110,11 @@
         });
         const data = await response.json().catch(() => ({}));
         const ok = response.ok && data.ok === true;
-        const message = String(data.message || (ok ? window.linnmsAlertMessage('browser-device-edit-modal-koneksi-berhasil') : window.linnmsAlertMessage('browser-device-edit-modal-koneksi-belum-berhasil')));
+        const message = String(data.message || (ok ? 'Koneksi berhasil.' : 'Koneksi belum berhasil.'));
         if (typeof window.linnmsToast === 'function') window.linnmsToast(ok ? 'success' : 'error', message);
         else showResult(message, ok ? 'success' : 'error');
       } catch {
-        showResult(window.linnmsAlertMessage('browser-device-edit-modal-tes-koneksi-tidak-dapat-dijalankan'), 'error');
+        showResult('Tes koneksi tidak dapat dijalankan.', 'error');
       } finally {
         test.disabled = false;
         test.classList.remove('is-loading');
@@ -143,7 +143,7 @@
       const response = await window.linnmsAjax.request(url.toString(), { signal: request.signal, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.ok !== true || typeof data.html !== 'string') {
-        throw new Error(String(data.message || window.linnmsAlertMessage('browser-device-edit-modal-form-edit-perangkat-tidak-dapat-dimuat')));
+        throw new Error(String(data.message || 'Form edit perangkat tidak dapat dimuat.'));
       }
       title.textContent = String(data.title || 'Edit Perangkat');
       body.innerHTML = data.html;
@@ -153,7 +153,7 @@
       (focusTarget instanceof HTMLElement ? focusTarget : closeButton)?.focus({ preventScroll: true });
     } catch (error) {
       if (error?.name === 'AbortError' || modal.hidden) return;
-      body.textContent = error instanceof Error ? error.message : window.linnmsAlertMessage('browser-device-edit-modal-form-edit-perangkat-tidak-dapat-dimuat');
+      body.textContent = error instanceof Error ? error.message : 'Form edit perangkat tidak dapat dimuat.';
       body.setAttribute('role', 'alert');
     }
   };

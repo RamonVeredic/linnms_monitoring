@@ -27,10 +27,10 @@ function handle_onu_registration_action(string $action): bool
     $resultData = is_array($result['data'] ?? null) ? $result['data'] : [];
     $targetRowId = (int)($resultData['row_id'] ?? $rowId);
     $notices = is_array($resultData['notices'] ?? null) ? $resultData['notices'] : [];
-    if ($notices === []) $notices = [['level' => 'error', 'message' => alert_message('onu-registration-registrasi-onu-gagal')]];
+    if ($notices === []) $notices = [['level' => 'error', 'message' => 'Registrasi ONU gagal.']];
     foreach ($notices as $notice) {
         if (!is_array($notice)) continue;
-        flash((string)($notice['level'] ?? 'error'), (string)($notice['message'] ?? alert_message('onu-registration-registrasi-onu-gagal')));
+        flash((string)($notice['level'] ?? 'error'), (string)($notice['message'] ?? 'Registrasi ONU gagal.'));
     }
     if (!empty($result['ok'])) {
         linnms_onu_registration_redirect($action === 'unregister_onu' ? 'add-onu' : 'view-onu', $targetRowId);

@@ -19,7 +19,7 @@ function format_time_ago(?string $date): string
 function format_feed_time(mixed $value): string
 {
     $createdAt = trim((string)($value ?? ''));
-    if ($createdAt === '') return '—';
+    if ($createdAt === '') return 'N/A';
 
     $ts = strtotime($createdAt);
     if ($ts === false) return $createdAt;

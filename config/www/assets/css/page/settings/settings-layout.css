@@ -87,10 +87,11 @@
 label.settings-row {
   cursor: pointer;
 }
-.channel-master-switch > label.control {
+#notification-settings .settings-row > label.control {
   cursor: pointer;
 }
-.channel-master-switch > label.control:has(input:disabled) {
+#notification-settings .settings-row.is-access-locked > label.control,
+#notification-settings .settings-row > label.control:has(input:disabled) {
   cursor: not-allowed;
 }
 .settings-row > .label {

@@ -216,7 +216,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             <button class="icon-button modal-close-button" type="button" data-onu-modal-close aria-label="Tutup modal"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
 
-        <form method="post" class="onu-control-modal-form" onsubmit="return confirm(<?= h(json_encode(alert_message('confirm-onu-serial-change'), JSON_THROW_ON_ERROR)) ?>);">
+        <form method="post" class="onu-control-modal-form" onsubmit="return confirm('Ganti Serial ONU ini? Serial lama akan kembali menjadi belum terdaftar.');">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="replace_onu_registration">
             <input type="hidden" name="onu_row_id" value="<?= (int)$onuView['id'] ?>"><input type="hidden" name="olt_device_id" value="<?= (int)($onuView['olt_device_id'] ?? 0) ?>"><input type="hidden" name="driver_id" value="<?= h((string)device_driver_type($onuView)) ?>">
@@ -284,7 +284,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             <div><h2 id="onuActionModalTitle">Tindakan</h2></div>
             <button class="icon-button modal-close-button" type="button" data-onu-modal-close aria-label="Tutup modal"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
-        <form method="post" class="onu-control-modal-form" data-onu-action-form onsubmit="const operation=event.submitter?.value;if(!operation)return false;this.elements.action.value=operation==='deleteOp'?'delete_onu':'onu_operation';return operation==='deleteOp'||confirm(window.linnmsAlertMessage('browser-confirm-onu-operation', {operation: event.submitter.textContent.trim()}));">
+        <form method="post" class="onu-control-modal-form" data-onu-action-form onsubmit="const operation=event.submitter?.value;if(!operation)return false;this.elements.action.value=operation==='deleteOp'?'delete_onu':'onu_operation';return operation==='deleteOp'||confirm('Jalankan '+event.submitter.textContent.trim()+' pada ONU ini?');">
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="onu_operation">
             <input type="hidden" name="onu_row_id" value="<?= (int)$onuView['id'] ?>"><input type="hidden" name="olt_device_id" value="<?= (int)($onuView['olt_device_id'] ?? 0) ?>"><input type="hidden" name="driver_id" value="<?= h((string)device_driver_type($onuView)) ?>">

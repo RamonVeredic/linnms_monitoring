@@ -13,5 +13,8 @@
     startDiscovery: (form) => window.linnmsAjax.request((document.body.dataset.liveUrl || 'live.php') + '?type=start-olt-discovery', {
       method: 'POST', cache: 'no-store', body: new FormData(form),
     }),
+    syncDevice: (form) => window.linnmsAjax.request((document.body.dataset.liveUrl || 'live.php') + '?type=sync-snmp-device', {
+      method: 'POST', cache: 'no-store', body: new FormData(form),
+    }),
   });
 })();

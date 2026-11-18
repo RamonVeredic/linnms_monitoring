@@ -40,7 +40,7 @@
               if (!(l instanceof HTMLInputElement)) return;
               const e = l.value.trim();
               l.setCustomValidity(
-                "" === e || o.test(e) ? "" : window.linnmsAlertMessage('browser-device-edit-modal-periksa-ip-anda'),
+                "" === e || o.test(e) ? "" : "Periksa IP Anda.",
               );
             },
             u = () =>
@@ -51,10 +51,10 @@
                   : null,
             m = (e) =>
               "username" === e.name
-                ? window.linnmsAlertMessage('browser-device-form-username-harus-diisi')
+                ? "Username harus diisi."
                 : "password" === e.name
-                  ? window.linnmsAlertMessage('browser-device-form-password-harus-diisi')
-                  : window.linnmsAlertMessage('browser-device-form-port-telnet-harus-diisi'),
+                  ? "Password harus diisi."
+                  : "Port Telnet harus diisi.",
             f = () => {
               if (!a || !d) return;
               const e = "1" === u()?.dataset.telnetCli && a.checked;
@@ -130,7 +130,7 @@
               const d = Date.now();
               let i = "error",
                 s =
-                  window.linnmsAlertMessage('browser-device-form-tes-koneksi-tidak-dapat-dijalankan-periksa-koneksi-aplikasi-lalu');
+                  "Tes koneksi tidak dapat dijalankan. Periksa koneksi aplikasi lalu coba lagi.";
               y(!0);
               try {
                 const e = await window.linnmsAjax.request(t, {
@@ -142,7 +142,7 @@
                   n = await e.json().catch(() => ({}));
                 ((s = String(
                   n.message ||
-                    (e.ok ? window.linnmsAlertMessage('browser-device-edit-modal-koneksi-berhasil') : window.linnmsAlertMessage('browser-device-edit-modal-koneksi-belum-berhasil')),
+                    (e.ok ? "Koneksi berhasil." : "Koneksi belum berhasil."),
                 )),
                   (i = e.ok && n.ok ? "success" : "error"));
               } catch (e) {

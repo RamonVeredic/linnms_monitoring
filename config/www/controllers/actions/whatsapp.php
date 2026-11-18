@@ -46,45 +46,43 @@ function handle_whatsapp_action(string $action): bool
             ['whatsapp', 'notification', 'telegram', 'alerts']);
         $data = linnms_whatsapp_action_input();
         if (($data['whatsapp_provider'] ?? '') === '') {
-            flash('error', alert_message('whatsapp-gateway-tidak-dikenal'));
+            flash('error', 'Gateway tidak dikenal.');
             redirect($returnPage);
         }
         $result = linnms_whatsapp_action_request($uid, $action, $data);
         $code = (string)linnms_action_reason($result, 'internal');
         if (!empty($result['ok'])) {
             $response = is_array($result['data'] ?? null) ? $result['data'] : [];
-            $message = alert_message(
-                !empty($response['previously_enabled']) ? 'whatsapp-connection-saved' : 'whatsapp-connection-saved-inactive',
-                ['provider' => (string)($response['provider_label'] ?? '')]
-            );
+            $message = 'Koneksi WhatsApp (' . (string)($response['provider_label'] ?? '') . ') tersimpan'
+                . ' Tekan "Tes Koneksi" untuk memastikan pengiriman berhasil.'
+                . (!empty($response['previously_enabled']) ? '' : ' aktifkan notifikasi dari halaman Notifikasi');
             flash('success', $message);
-        } elseif ($code === 'unsupported') flash('warning', alert_message('whatsapp-whatsapp-belum-tersedia'));
-        elseif ($code === 'provider_invalid') flash('error', alert_message('whatsapp-gateway-whatsapp-tidak-dikenal'));
-        elseif ($code === 'group_unsupported') flash('error', alert_message('whatsapp-gateway-ini-belum-mendukung-tujuan-grup'));
-        elseif ($code === 'missing_fields') flash('error', alert_message('whatsapp-lengkapi-kolom-wajib'));
-        elseif ($code === 'group_invalid') flash('error', alert_message('whatsapp-group-id-whatsapp-tidak-valid'));
-        elseif ($code === 'target_invalid') flash('error', alert_message('whatsapp-nomor-tujuan-tidak-valid'));
-        else flash('error', alert_message('whatsapp-koneksi-whatsapp-gagal-disimpan'));
+        } elseif ($code === 'unsupported') flash('warning', 'WhatsApp belum tersedia');
+        elseif ($code === 'provider_invalid') flash('error', 'Gateway WhatsApp tidak dikenal');
+        elseif ($code === 'group_unsupported') flash('error', 'Gateway ini belum mendukung tujuan grup');
+        elseif ($code === 'missing_fields') flash('error', 'Lengkapi kolom wajib.');
+        elseif ($code === 'group_invalid') flash('error', 'Group ID WhatsApp tidak valid');
+        elseif ($code === 'target_invalid') flash('error', 'Nomor tujuan tidak valid');
+        else flash('error', 'Koneksi WhatsApp gagal disimpan');
         redirect($returnPage);
     }
 
     if ($action === 'whatsapp_toggle_notifications') {
-        $returnPage = action_return_page($_POST['return_page'] ?? '', '?page=notif', ['notification', 'settings-admin']);
         $enabled = (string)($_POST['whatsapp_enabled'] ?? '0') === '1';
         $result = linnms_whatsapp_action_request($uid, $action, ['whatsapp_enabled' => $enabled ? '1' : '0']);
         $unsupported = linnms_action_reason($result, '') === 'unsupported';
-        $message = $unsupported ? alert_message('whatsapp-whatsapp-belum-tersedia') : (!empty($result['ok'])
-            ? ($enabled ? alert_message('whatsapp-notifikasi-whatsapp-diaktifkan')
-                : alert_message('whatsapp-notifikasi-whatsapp-dimatikan'))
-            : alert_message('whatsapp-notifikasi-whatsapp-gagal-diubah'));
-        linnms_action_result(!empty($result['ok']), $message, $returnPage, $unsupported ? 'warning' : 'error');
+        $message = $unsupported ? 'WhatsApp belum tersedia' : (!empty($result['ok'])
+            ? ($enabled ? 'Notifikasi WhatsApp diaktifkan'
+                : 'Notifikasi WhatsApp dimatikan')
+            : 'Notifikasi WhatsApp gagal diubah');
+        linnms_action_result(!empty($result['ok']), $message, '?page=notif', $unsupported ? 'warning' : 'error');
     }
 
     if ($action === 'whatsapp_disable') {
         $result = linnms_whatsapp_action_request($uid, $action, []);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? alert_message('whatsapp-berhasil-menghapus-koneksi-whatsapp')
-            : alert_message('whatsapp-gagal-menghapus-koneksi-whatsapp'));
+            ? 'Berhasil menghapus koneksi whatsapp'
+            : 'Gagal menghapus koneksi whatsapp');
         redirect('?page=whatsapp');
     }
 
@@ -93,10 +91,10 @@ function handle_whatsapp_action(string $action): bool
         $result = linnms_whatsapp_action_request($uid, $action, $data);
         $code = (string)linnms_action_reason($result, 'internal');
         $message = match ($code) {
-            'ok' => alert_message('whatsapp-token-session-berhasil-dibuat'),
-            'unsupported' => alert_message('whatsapp-whatsapp-belum-tersedia'),
-            'device_rejected' => alert_message('whatsapp-token-gagal-dibuat-periksa-url-server-dan-secret-key'),
-            default => linnms_action_code_message($result, alert_message('whatsapp-token-gagal-dibuat')),
+            'ok' => 'Token session berhasil dibuat',
+            'unsupported' => 'WhatsApp belum tersedia',
+            'device_rejected' => 'Token gagal dibuat. Periksa URL server dan secret key',
+            default => linnms_action_code_message($result, 'Token gagal dibuat'),
         };
         linnms_whatsapp_json([
             'ok' => !empty($result['ok']),
@@ -120,11 +118,11 @@ function handle_whatsapp_action(string $action): bool
         }
         linnms_whatsapp_json([
             'ok' => !empty($result['ok']),
-            'message' => $code === 'ok' ? ($groups === [] ? alert_message('whatsapp-grup-tidak-ditemukan-pada-gateway')
-                : (count($groups) === 1 ? alert_message('whatsapp-one-group-found')
-                    : alert_message('whatsapp-groups-found', ['count' => count($groups)])))
-                : ($code === 'unsupported' ? alert_message('whatsapp-whatsapp-belum-tersedia')
-                    : alert_message('whatsapp-gagal-meminta-daftar-grup-pilih-opsi-group-id-manual')),
+            'message' => $code === 'ok' ? ($groups === [] ? 'Grup tidak ditemukan pada gateway'
+                : (count($groups) === 1 ? 'Satu grup ditemukan'
+                    : count($groups) . ' grup ditemukan'))
+                : ($code === 'unsupported' ? 'WhatsApp belum tersedia'
+                    : 'Gagal meminta daftar grup. Pilih opsi Group ID manual atau coba lagi'),
             'groups' => $groups,
         ], $code === 'unsupported' ? 403 : ($code === 'internal' ? 500 : 200));
     }

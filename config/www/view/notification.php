@@ -9,7 +9,30 @@
                 <header class="tittle-subtitle"><h3>Service</h3></header>
                 <div class="settings-body">
                     <ul class="settings-list">
-                        <?php require project_path('view', 'partials', 'notification-channel-toggles.php'); ?>
+                    <li>
+                    <form id="telegramMasterSwitchForm" method="post" data-instant-toggle>
+                        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="telegram_toggle_notifications">
+                        <input type="hidden" name="telegram_enabled" value="0">
+                        <div class="settings-row channel-master-switch<?= !$notificationView['telegram_allowed'] ? ' is-access-locked' : '' ?>"<?= !$notificationView['telegram_allowed'] ? ' aria-disabled="true"' : '' ?>>
+                            <span class="label"><span>Telegram</span><?php if ($notificationView['telegram_message'] !== ''): ?><small><?= h($notificationView['telegram_message']) ?></small><?php endif; ?></span>
+                            <label class="control"><input type="checkbox" role="switch" name="telegram_enabled" value="1" <?= $notificationView['telegram_enabled'] ? 'checked' : '' ?> <?= !$notificationView['telegram_available'] ? 'disabled' : '' ?> data-instant-toggle-input aria-label="Aktifkan pengiriman notifikasi Telegram"><i class="toggle-switch" aria-hidden="true"></i></label>
+                        </div>
+                        <noscript><?php if ($notificationView['telegram_available']): ?><button class="button primary" type="submit">Simpan</button><?php elseif ($notificationView['telegram_message'] !== ''): ?><small><?= h($notificationView['telegram_message']) ?></small><?php endif; ?></noscript>
+                    </form>
+                    </li>
+                    <li>
+                    <form id="whatsappToggleForm" method="post" data-instant-toggle>
+                        <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="whatsapp_toggle_notifications">
+                        <input type="hidden" name="whatsapp_enabled" value="0">
+                        <div class="settings-row channel-master-switch<?= !$notificationView['whatsapp_allowed'] ? ' is-access-locked' : '' ?>"<?= !$notificationView['whatsapp_allowed'] ? ' aria-disabled="true"' : '' ?>>
+                            <span class="label"><span>WhatsApp</span><?php if ($notificationView['whatsapp_message'] !== ''): ?><small><?= h($notificationView['whatsapp_message']) ?></small><?php endif; ?></span>
+                            <label class="control"><input type="checkbox" role="switch" name="whatsapp_enabled" value="1" <?= $notificationView['whatsapp_enabled'] ? 'checked' : '' ?> <?= !$notificationView['whatsapp_available'] ? 'disabled' : '' ?> data-instant-toggle-input aria-label="Aktifkan pengiriman notifikasi WhatsApp"><i class="toggle-switch" aria-hidden="true"></i></label>
+                        </div>
+                        <noscript><?php if ($notificationView['whatsapp_available']): ?><button class="button primary" type="submit">Simpan</button><?php elseif ($notificationView['whatsapp_message'] !== ''): ?><small><?= h($notificationView['whatsapp_message']) ?></small><?php endif; ?></noscript>
+                    </form>
+                    </li>
                     </ul>
                 </div>
             </section>

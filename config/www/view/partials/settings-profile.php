@@ -28,7 +28,7 @@ $switchServiceLimitLabel = $switchServiceLimit === 0 ? 'Unlimited' : (string)$sw
                     <h2>Detail Akun</h2>
                 </div>
                 <div class="profile-information-list">
-                    <?php $profileText = static fn($v): string => trim((string)($v ?? '')) !== '' ? (string)$v : '—'; ?>
+                    <?php $profileText = static fn($v): string => trim((string)($v ?? '')) !== '' ? (string)$v : '-'; ?>
                     <div class="profile-info-username"><span class="profile-information-label">Username</span><span class="profile-information-value"><?= h($profileText($user['username'] ?? null)) ?></span></div>
                     <div class="profile-info-whatsapp"><span class="profile-information-label">WhatsApp</span><span class="profile-information-value"><?= h($profileText($user['phone_number'] ?? null)) ?></span></div>
                     <div class="profile-info-olt"><span class="profile-information-label">OLT</span><span class="profile-information-value"><?= h($oltServiceLimitLabel) ?></span></div>

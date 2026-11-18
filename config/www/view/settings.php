@@ -43,7 +43,14 @@
                     <header class="tittle-subtitle"><h3>Notifikasi</h3></header>
                     <div class="settings-body">
                         <ul class="settings-list">
-                            <?php require project_path('view', 'partials', 'notification-channel-toggles.php'); ?>
+                            <?php foreach ([
+                                ['label' => 'Telegram', 'allowed' => $telegramFeatureAllowed],
+                                ['label' => 'WhatsApp', 'allowed' => $whatsappFeatureAllowed],
+                            ] as $channel): ?>
+                                <li>
+                                    <div class="settings-row<?= !$channel['allowed'] ? ' is-access-locked' : '' ?>"><span class="label"><?= h($channel['label']) ?></span><span class="control"><input type="checkbox" role="switch" <?= $channel['allowed'] ? 'checked' : '' ?> disabled aria-label="<?= h($channel['label'] . ($channel['allowed'] ? ' aktif' : ' tidak diizinkan')) ?>"><?php if ($channel['allowed']): ?><span class="toggle-switch" aria-hidden="true"></span><?php else: ?><span class="toggle-disabled-lock" aria-hidden="true"><i class="bi bi-lock-fill"></i></span><?php endif; ?></span></div>
+                                </li>
+                            <?php endforeach; ?>
                         </ul>
                     </div>
                 </section>
@@ -59,20 +66,18 @@
                                 <?php foreach (['olt', 'router', 'switch'] as $driverGroup): ?>
                                     <?php foreach ($deviceDriverCatalog as $driverId => $definition): ?>
                                         <?php if ((string)($definition['group'] ?? '') !== $driverGroup || (string)$driverId === 'external_olt_api') continue; ?>
-                                        <?php $driverAccessLocked = !device_access_allows((string)$driverId);
-                                        $driverEnabled = !$driverAccessLocked && ($driverGroup === 'olt' ? olt_driver_support_enabled($oltDriverSupportFlags, (string)$driverId) : snmp_driver_support_enabled($snmpDriverSupportFlags, (string)$driverId)); ?>
+                                        <?php $driverEnabled = $driverGroup === 'olt' ? olt_driver_support_enabled($oltDriverSupportFlags, (string)$driverId) : snmp_driver_support_enabled($snmpDriverSupportFlags, (string)$driverId); ?>
                                         <li>
-                                            <label class="settings-row<?= $driverAccessLocked ? ' is-access-locked' : '' ?>" <?= $driverAccessLocked ? 'title="' . h(device_access_lock_message()) . '"' : '' ?>>
+                                            <label class="settings-row">
                                                 <span class="label"><?= h((string)($definition['label'] ?? $driverId)) ?></span>
-                                                <span class="control"><input type="checkbox" role="switch" name="driver_support[<?= h((string)$driverId) ?>]" value="1" <?= $driverEnabled ? 'checked' : '' ?> <?= $driverAccessLocked ? 'disabled' : '' ?>><?php if ($driverAccessLocked): ?><span class="toggle-disabled-lock" title="<?= h(device_access_lock_message()) ?>" aria-hidden="true"><i class="bi bi-lock-fill"></i></span><?php else: ?><span class="toggle-switch" aria-hidden="true"></span><?php endif; ?></span>
+                                                <span class="control"><input type="checkbox" role="switch" name="driver_support[<?= h((string)$driverId) ?>]" value="1" <?= $driverEnabled ? 'checked' : '' ?>><span class="toggle-switch" aria-hidden="true"></span></span>
                                             </label>
                                         </li>
                                     <?php endforeach; ?>
                                     <?php if ($driverGroup === 'olt'): ?>
                                         <?php foreach ($apiOltTypeOptions as $oltType => $oltTypeLabel): ?>
-                                            <?php $oltTypeLocked = !device_access_allows('api_olt_type:' . (string)$oltType); ?>
                                             <li>
-                                                <label class="settings-row<?= $oltTypeLocked ? ' is-access-locked' : '' ?>" <?= $oltTypeLocked ? 'title="' . h(device_access_lock_message()) . '"' : '' ?>><span class="label"><?= h((string)$oltTypeLabel) ?></span><span class="control"><input type="checkbox" role="switch" name="api_olt_type_support[<?= h((string)$oltType) ?>]" value="1" <?= !$oltTypeLocked && api_olt_type_support_enabled($apiOltTypeSupportFlags, (string)$oltType) ? 'checked' : '' ?> <?= $oltTypeLocked ? 'disabled' : '' ?>><?php if ($oltTypeLocked): ?><span class="toggle-disabled-lock" title="<?= h(device_access_lock_message()) ?>" aria-hidden="true"><i class="bi bi-lock-fill"></i></span><?php else: ?><span class="toggle-switch" aria-hidden="true"></span><?php endif; ?></span></label>
+                                                <label class="settings-row"><span class="label"><?= h((string)$oltTypeLabel) ?></span><span class="control"><input type="checkbox" role="switch" name="api_olt_type_support[<?= h((string)$oltType) ?>]" value="1" <?= api_olt_type_support_enabled($apiOltTypeSupportFlags, (string)$oltType) ? 'checked' : '' ?>><span class="toggle-switch" aria-hidden="true"></span></span></label>
                                             </li>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -117,14 +122,14 @@
                     <input type="hidden" name="user_id" value="">
                     <div class="form-grid">
                         <?php foreach ([
-                            ['key' => 'olt_limit', 'label' => 'OLT', 'limit' => (int)$oltQuota['limit']],
-                            ['key' => 'mikrotik_limit', 'label' => 'MikroTik', 'limit' => (int)$mikrotikQuota['limit']],
-                            ['key' => 'switch_limit', 'label' => 'Switch', 'limit' => (int)$switchQuota['limit']],
+                            ['key' => 'olt_limit', 'label' => 'OLT'],
+                            ['key' => 'mikrotik_limit', 'label' => 'MikroTik'],
+                            ['key' => 'switch_limit', 'label' => 'Switch'],
                         ] as $field): ?>
                             <?php $inputId = 'userLimit_' . $field['key']; ?>
                             <div class="field">
-                                <label for="<?= h($inputId) ?>"><?= h($field['label']) ?><?= $field['limit'] > 0 ? ' (maks. ' . $field['limit'] . ')' : ' (0 = tanpa batas)' ?></label>
-                                <input id="<?= h($inputId) ?>" type="number" name="<?= h($field['key']) ?>" min="<?= $field['limit'] > 0 ? 1 : 0 ?>" <?= $field['limit'] > 0 ? 'max="' . $field['limit'] . '"' : '' ?> step="1" required inputmode="numeric">
+                                <label for="<?= h($inputId) ?>"><?= h($field['label']) ?> (0 = tanpa batas akun)</label>
+                                <input id="<?= h($inputId) ?>" type="number" name="<?= h($field['key']) ?>" min="0" step="1" required inputmode="numeric">
                             </div>
                         <?php endforeach; ?>
                     </div>

@@ -27,11 +27,11 @@ function handle_user_action(string $action): bool
         $username = trim((string)($_POST['username'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
         if (preg_match('/^[A-Za-z0-9._-]{3,80}$/', $username) !== 1) {
-            flash('error', alert_message('user-username-minimal-3-karakter-dan-hanya-boleh-huruf-angka'));
+            flash('error', 'Username minimal 3 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip.');
             redirect('?page=dashboard');
         }
         if ($password === '') {
-            flash('error', alert_message('user-password-wajib-diisi'));
+            flash('error', 'Password wajib diisi.');
             redirect('?page=dashboard');
         }
         $result = linnms_user_action_request($uid, $action, [
@@ -40,8 +40,8 @@ function handle_user_action(string $action): bool
             'display_name' => trim((string)($_POST['display_name'] ?? '')),
         ]);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? alert_message('user-account-created', ['username' => $username])
-            : linnms_action_code_message($result, alert_message('user-akun-gagal-dibuat-periksa-kembali-data-yang-dimasukkan')));
+            ? 'Akun user ' . $username . ' berhasil dibuat.'
+            : linnms_action_code_message($result, 'Akun gagal dibuat. Periksa kembali data yang dimasukkan.'));
         redirect('?page=dashboard');
     }
 
@@ -54,10 +54,10 @@ function handle_user_action(string $action): bool
             'make_active' => (string)($_POST['make_active'] ?? '0'),
         ]);
         if (!empty($result['ok'])) {
-            flash('success', $action === 'toggle_user' ? alert_message('user-status-akun-diperbarui') : alert_message('user-akun-user-beserta-datanya-dihapus'));
+            flash('success', $action === 'toggle_user' ? 'Status akun diperbarui.' : 'Akun user beserta datanya dihapus.');
         } else {
             flash('error', linnms_action_code_message($result,
-                $action === 'toggle_user' ? alert_message('user-status-akun-gagal-diperbarui') : alert_message('user-akun-user-gagal-dihapus')));
+                $action === 'toggle_user' ? 'Status akun gagal diperbarui.' : 'Akun user gagal dihapus.'));
         }
         redirect('?page=dashboard');
     }
@@ -67,12 +67,12 @@ function handle_user_action(string $action): bool
         $id = valid_positive_id($_POST['user_id'] ?? null);
         $password = (string)($_POST['password'] ?? '');
         if ($id === null || $password === '') {
-            flash('error', alert_message('user-user-password-tidak-valid'));
+            flash('error', 'User/password tidak valid.');
             redirect('?page=dashboard');
         }
         $result = linnms_user_action_request($uid, $action, ['user_id' => $id, 'password' => $password]);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? alert_message('user-password-user-diperbarui') : linnms_action_code_message($result, alert_message('user-password-user-gagal-diperbarui')));
+            ? 'Password user diperbarui.' : linnms_action_code_message($result, 'Password user gagal diperbarui.'));
         redirect('?page=dashboard');
     }
 
@@ -83,13 +83,13 @@ function handle_user_action(string $action): bool
         }
         $error = null;
         if (trim($data['display_name']) === '' || mb_strlen(trim($data['display_name'])) > 60) {
-            $error = alert_message('user-nama-wajib-diisi-dan-maksimal-60-karakter');
+            $error = 'Nama wajib diisi dan maksimal 60 karakter.';
         } elseif ($data['current_password'] === '') {
-            $error = alert_message('user-password-saat-ini-wajib-diisi');
+            $error = 'Password saat ini wajib diisi.';
         } elseif ($data['new_password'] !== '' && mb_strlen($data['new_password']) < 6) {
-            $error = alert_message('user-password-baru-minimal-6-karakter');
+            $error = 'Password baru minimal 6 karakter.';
         } elseif (mb_strlen($data['phone_number']) > 24) {
-            $error = alert_message('user-kontak-maksimal-24-karakter');
+            $error = 'Kontak maksimal 24 karakter.';
         }
         if ($error !== null) {
             flash('error', $error);
@@ -99,10 +99,10 @@ function handle_user_action(string $action): bool
         if (!empty($result['ok'])) {
             $_SESSION['username'] = (string)($result['data']['username'] ?? '');
             $_SESSION['display_name'] = (string)($result['data']['display_name'] ?? '');
-            flash('success', alert_message('user-profil-berhasil-diperbarui'));
+            flash('success', 'Profil berhasil diperbarui.');
         } else {
-            flash('error', linnms_action_reason($result, '') === 'auth' ? alert_message('profile-password-mismatch')
-                : linnms_action_code_message($result, alert_message('user-profil-gagal-diperbarui')));
+            flash('error', linnms_action_reason($result, '') === 'auth' ? 'Pastikan password sesuai'
+                : linnms_action_code_message($result, 'Profil gagal diperbarui.'));
         }
         redirect(public_settings_url() . '#account');
     }
@@ -110,7 +110,7 @@ function handle_user_action(string $action): bool
     require_admin_role();
     $id = valid_positive_id($_POST['user_id'] ?? null);
     if ($id === null) {
-        flash('error', alert_message('user-akun-pengguna-tidak-valid'));
+        flash('error', 'Akun pengguna tidak valid.');
         redirect(public_page_url('settings-admin') . '#user-limits');
     }
     $data = ['user_id' => $id];
@@ -118,7 +118,7 @@ function handle_user_action(string $action): bool
         $value = $_POST[$key] ?? null;
         if (!is_scalar($value) || filter_var((string)$value, FILTER_VALIDATE_INT,
             ['options' => ['min_range' => 0]]) === false) {
-            flash('error', alert_message('user-limit-perangkat-harus-berupa-angka-bulat-tidak-negatif'));
+            flash('error', 'Limit perangkat harus berupa angka bulat tidak negatif.');
             redirect(public_page_url('settings-admin') . '#user-limits');
         }
         $data[$key] = (int)$value;
@@ -126,6 +126,6 @@ function handle_user_action(string $action): bool
     $result = linnms_user_action_request($uid, $action, $data);
     flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
         ? 'Limit perangkat pengguna disimpan.'
-        : linnms_action_code_message($result, alert_message('user-limit-perangkat-pengguna-gagal-disimpan')));
+        : linnms_action_code_message($result, 'Limit perangkat pengguna gagal disimpan.'));
     redirect(public_page_url('settings-admin') . '#user-limits');
 }
