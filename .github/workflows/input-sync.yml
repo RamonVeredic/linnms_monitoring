@@ -4,13 +4,13 @@ run-name: input-sync
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [master]
+    types: [develop-staging]
 
 permissions:
   contents: write
 
 concurrency:
-  group: master
+  group: develop-staging
   cancel-in-progress: false
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
       - name: Read source
         env:
           LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
-          TARGET_INPUT: RamonVeredic/LINNMS-Staging
+          TARGET_INPUT: RamonVeredic/linnms_deplov
           SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.sha || '' }}
         shell: bash
         run: |
@@ -42,14 +42,14 @@ jobs:
           [[ "$TARGET_INPUT" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Missing input repository' >&2; exit 1; }
           work="$RUNNER_TEMP/linnms"
           mkdir -p "$work"
-          git clone -q --depth 1 --branch master \
+          git clone -q --depth 1 --branch staging \
             "https://x-access-token:${LINNMS_TOKEN}@github.com/${TARGET_INPUT}.git" \
             "$work/source"
           if [[ -n "$SOURCE_SHA" ]]; then
             [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid source revision' >&2; exit 1; }
-            git -C "$work/source" fetch -q --unshallow origin master
-            git -C "$work/source" merge-base --is-ancestor "$SOURCE_SHA" origin/master || {
-              echo 'Source revision is not in master' >&2
+            git -C "$work/source" fetch -q --unshallow origin staging
+            git -C "$work/source" merge-base --is-ancestor "$SOURCE_SHA" origin/staging || {
+              echo 'Source revision is not in develop staging' >&2
               exit 1
             }
             git -C "$work/source" checkout -q --detach "$SOURCE_SHA"
