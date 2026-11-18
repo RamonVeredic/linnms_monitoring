@@ -102,9 +102,9 @@ register_shutdown_function(static function () use (
             }
             application_log_event(
                 $userId,
-                'System',
+                'LINNMS APP',
                 'application_error',
-                $isFatal ? 'critical' : 'error',
+                'error',
                 $fatalMessage,
                 $fatalContext,
                 $actor,
@@ -116,16 +116,15 @@ register_shutdown_function(static function () use (
         if (
             $requestMethodForLog !== 'POST' ||
             $requestActionForLog === '' ||
-            !empty($GLOBALS['LINNMS_SKIP_ACTION_LOG']) ||
             !in_array($requestActionForLog, $importantActionsForLog, true)
         ) {
             return;
         }
 
         $action = $requestActionForLog;
-        $level = 'info';
+        $level = 'success';
         $message = $action === 'login'
-            ? (current_user_id() > 0 ? 'berhasil login' : 'percobaan login gagal: alasan belum diketahui')
+            ? (current_user_id() > 0 ? 'Pengguna berhasil masuk.' : 'Percobaan login gagal.')
             : 'Aktivitas penting pengguna diproses.';
         $actionLog = $GLOBALS['LINNMS_ACTION_LOG'] ?? null;
         $logArea = 'LINNMS APP';
@@ -154,41 +153,7 @@ register_shutdown_function(static function () use (
                 }
             }
         }
-        if (in_array($action, ['login', 'logout'], true) && $level === 'success') $level = 'info';
-        $userAgent = strtolower(trim((string)($_SERVER['HTTP_USER_AGENT'] ?? '')));
-        if ($action === 'login' && $level === 'info'
-            && preg_match('~(?:^|[ /])(?:python-requests|python-urllib|curl|wget|httpie|go-http-client|postmanruntime|insomnia)(?:/|$)~', $userAgent)) {
-            $level = 'warning';
-            $message = rtrim(trim($message), '.') . ' melalui klien otomatis';
-        }
-        if (in_array($action, ['export_onu_backup', 'preview_onu_backup',
-            'sync_snmp_olt', 'scan_olt', 'scan_all_olts',
-            'refresh_olt', 'refresh_olt_view', 'refresh_olt_cli_optical',
-            'refresh_onu_cli_optical', 'refresh_device_access',
-            'test_olt_cli_connection'], true)
-            && in_array($level, ['info', 'success'], true)) return;
-
-        $ipAddress = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
-        $identity = trim((string)($actor ?? '')) ?: 'Pengguna';
-        $origin = $ipAddress !== '' ? 'IP ' . $ipAddress . ', ' : '';
-        if (in_array($action, ['add_device', 'add_olt', 'add_mikrotik', 'add_switch'], true) && $level === 'success') {
-            $deviceName = mb_substr(trim((string)($_POST['device_name'] ?? $_POST['olt_name'] ?? '')), 0, 120);
-            if ($deviceName !== '') $message = $identity . ' berhasil menambahkan perangkat ' . $deviceName;
-        } elseif ($action === 'update_device' && $level === 'success') {
-            $deviceName = mb_substr(trim((string)($_POST['device_name'] ?? '')), 0, 120);
-            if ($deviceName !== '') $message = $identity . ' berhasil memperbarui perangkat ' . $deviceName;
-        } elseif ($action === 'delete_device' && $level === 'success') {
-            $deviceId = valid_positive_id($_POST['device_id'] ?? null);
-            if ($deviceId !== null) $message = $identity . ' berhasil menghapus perangkat #' . $deviceId;
-        }
-        $message = rtrim(trim($message), " .\t\n\r\0\x0B");
-        if (in_array($action, ['login', 'logout'], true)) {
-            $message = $identity . ' ' . lcfirst($message);
-        } elseif (!in_array($action, ['add_device', 'add_olt', 'add_mikrotik', 'add_switch',
-            'update_device', 'delete_device'], true) || $level !== 'success') {
-            $message = $identity . ': ' . $message;
-        }
-        $message = $origin . $message;
+        if ($action === 'login' && current_user_id() < 1 && $level === 'success') $level = 'warning';
 
         application_log_event(
             $userId,
@@ -198,7 +163,7 @@ register_shutdown_function(static function () use (
             $message,
             [],
             $actor,
-            $ipAddress !== '' ? $ipAddress : null
+            $_SERVER['REMOTE_ADDR'] ?? null
         );
     } catch (Throwable) {}
 });
@@ -214,8 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     if ($submittedAction === 'logout' && !is_logged_in()) {
         $GLOBALS['LINNMS_ACTION_LOG'] = [
-            'area' => 'Keamanan',
-            'level' => 'info',
+            'area' => 'LINNMS APP',
+            'level' => 'success',
             'message' => 'Logout dikonfirmasi; session login sudah tidak tersedia.',
         ];
         logout_user();
@@ -282,11 +247,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($deviceAddErrors !== []) {
-            $GLOBALS['LINNMS_ACTION_LOG'] = [
-                'area' => 'LINNMS APP',
-                'level' => 'warning',
-                'message' => 'Penambahan perangkat ditolak: data formulir tidak valid.',
-            ];
             if (!empty($submittedDriver['telnet_cli']) && (string)($_POST['hybrid_status'] ?? '') === '1'
                 && !isset($deviceAddErrors['password'])) {
                 $deviceAddErrors['password'] = 'Masukkan ulang password.';
@@ -317,11 +277,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $expectedGroup = $action === 'add_mikrotik' ? 'router' : 'switch';
         if (!is_logged_in()) redirect('?page=login');
         if ($group !== $expectedGroup) {
-            $GLOBALS['LINNMS_ACTION_LOG'] = [
-                'area' => 'LINNMS APP',
-                'level' => 'warning',
-                'message' => 'Penambahan perangkat ditolak: jenis perangkat tidak valid.',
-            ];
             flash('error', 'Jenis perangkat tidak valid.');
             redirect('?page=dashboard');
         }
@@ -343,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $GLOBALS['LINNMS_ACTION_LOG'] = [
                 'area' => $publicDeviceLabel,
                 'level' => 'error',
-                'message' => $publicDeviceLabel . ' gagal ditambahkan.',
+                'message' => (string)$e,
             ];
             $_SESSION['old_snmp_device'] = [
                 'driver_id' => $driverId,

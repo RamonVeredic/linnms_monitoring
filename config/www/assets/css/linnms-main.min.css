@@ -930,19 +930,6 @@ button.is-loading > i {
   min-width: 0;
   max-width: 100%;
 }
-.app-log-badge {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  padding: 1px 7px;
-  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, currentColor 16%, transparent);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  line-height: 1.5;
-  white-space: nowrap;
-}
 .public-log-message .public-log-text {
   display: block;
   flex: 1 1 auto;

@@ -66,7 +66,7 @@ $deviceActionTypes = [
     'onu-service-config-delete', 'onu-tr069-save', 'onu-remote-access-save',
     'onu-veip-save', 'onu-wan-ip-save', 'onu-data-service-save',
     'onu-ethernet-save', 'onu-wifi-ssid-save', 'onu-wifi-config-save',
-    'onu-unconfigured-refresh', 'start-olt-discovery', 'sync-snmp-device', 'onu-action',
+    'onu-unconfigured-refresh', 'start-olt-discovery', 'onu-action',
     'olt-view-refresh', 'olt-port-update',
 ];
 if (in_array($type, $deviceActionTypes, true)) {

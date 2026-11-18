@@ -11,6 +11,7 @@ function api_olt_type_support_setting_key(string $oltType): string
 function api_olt_type_support_enabled(array $flags, string $oltType): bool
 {
     
+    if (!device_access_allows('api_olt_type:' . trim($oltType))) return false;
     $key = api_olt_type_support_setting_key($oltType);
     return array_key_exists($key, $flags) && (string)$flags[$key] === '1';
 }

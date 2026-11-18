@@ -26,36 +26,30 @@ function application_log_event(?int $userId, string $area, string $action, strin
     }
 }
 
-function application_log_error(Throwable $error, string $action = 'application_error', string $level = 'error'): void
+function application_log_error(Throwable $error, string $action = 'application_error'): void
 {
     static $fingerprints = [];
     $fingerprint = get_class($error) . '|' . $error->getMessage() . '|' . $error->getFile() . '|' . $error->getLine();
     if (isset($fingerprints[$fingerprint])) return;
     $fingerprints[$fingerprint] = true;
-    application_log_event(current_user_id() ?: null, $level === 'critical' ? 'System' : 'LINNMS APP', $action, $level, (string)$error,
+    application_log_event(current_user_id() ?: null, 'LINNMS APP', $action, 'error', (string)$error,
         [], current_username() ?: null);
-    if (in_array($level, ['error', 'critical'], true)) $GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'] = true;
+    $GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'] = true;
 }
 
 function register_application_error_logging(): void
 {
     set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
         if ((error_reporting() & $severity) === 0) return false;
-        $level = match ($severity) {
-            E_NOTICE, E_USER_NOTICE, E_DEPRECATED, E_USER_DEPRECATED, E_STRICT => 'info',
-            E_WARNING, E_USER_WARNING => 'warning',
-            E_USER_ERROR, E_RECOVERABLE_ERROR => 'critical',
-            default => 'error',
-        };
-        application_log_error(new ErrorException($message, 0, $severity, $file, $line), 'php_error', $level);
+        application_log_error(new ErrorException($message, 0, $severity, $file, $line), 'php_error');
         return false;
     });
     register_shutdown_function(static function (): void {
         $fatal = error_get_last();
         if (!is_array($fatal) || !in_array((int)($fatal['type'] ?? 0), [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) return;
         application_log_error(new ErrorException(
-            (string)($fatal['message'] ?? 'Fatal error tidak diketahui'), 0, (int)$fatal['type'],
+            (string)($fatal['message'] ?? 'Fatal error tanpa pesan.'), 0, (int)$fatal['type'],
             (string)($fatal['file'] ?? ''), (int)($fatal['line'] ?? 0)
-        ), 'php_fatal_error', 'critical');
+        ), 'php_fatal_error');
     });
 }
