@@ -12,12 +12,12 @@ class ReleaseSourceContractTest(unittest.TestCase):
         self.assertNotIn("format('staging-", WORKFLOW)
         self.assertNotIn('SOURCE_TAG" != "staging-', WORKFLOW)
 
-    def test_promoted_tag_checked_against_develop_staging(self):
+    def test_promoted_tag_checked_against_develop_master(self):
         self.assertIn("refs/tags/${SOURCE_TAG}:refs/tags/${SOURCE_TAG}", WORKFLOW)
-        self.assertIn('merge-base --is-ancestor "$pinned_sha" origin/staging', WORKFLOW)
+        self.assertIn('merge-base --is-ancestor "$pinned_sha" origin/master', WORKFLOW)
         self.assertIn("source vX.Y.Z tag is not reachable", WORKFLOW)
 
-    def test_manual_staging_publish_needs_no_sha_input(self):
+    def test_manual_master_publish_needs_no_sha_input(self):
         self.assertNotIn("source_sha:", WORKFLOW)
         self.assertNotIn("SOURCE_SHA:", WORKFLOW)
         self.assertNotIn('requires source_sha', WORKFLOW)
@@ -38,7 +38,7 @@ class ReleaseSourceContractTest(unittest.TestCase):
     def test_updated_paths(self):
         self.assertIn("github.com/${LINNMS_MODUL}.git", WORKFLOW)
         self.assertIn("TARGET_INPUT: RamonVeredic/linnms_deplov", WORKFLOW)
-        self.assertIn("clone -q --depth 1 --branch staging", WORKFLOW)
+        self.assertIn("clone -q --depth 1 --branch master", WORKFLOW)
         self.assertNotIn("TARGET_INPUT: RamonVeredic/LINNMS-Staging", WORKFLOW)
         self.assertIn("LINNMS_MODUL: RamonVeredic/linnms-protect", WORKFLOW)
         self.assertIn("docker buildx build --platform linux/amd64 -f docker/Dockerfile .", WORKFLOW)
