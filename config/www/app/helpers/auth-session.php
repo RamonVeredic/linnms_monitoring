@@ -42,8 +42,9 @@ function verify_csrf(): void
     if (function_exists('application_log_event')) {
         application_log_event(current_user_id() ?: null, 'Keamanan',
             mb_substr(trim((string)($_POST['action'] ?? 'unknown_post')), 0, 120),
-            'error', 'Request ditolak', ['http_status' => 419], current_username() ?: null);
+            'warning', 'Request ditolak', ['http_status' => 419], current_username() ?: null);
     }
+    $GLOBALS['LINNMS_SKIP_ACTION_LOG'] = true;
 
     if (is_logged_in()) {
 

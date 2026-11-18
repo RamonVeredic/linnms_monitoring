@@ -61,7 +61,6 @@ function olt_driver_support_setting_key(string $driverId): string
 function olt_driver_support_enabled(array $flags, string $driverId): bool
 {
     
-    if (!device_access_allows($driverId)) return false;
     $key = olt_driver_support_setting_key($driverId);
     if (!array_key_exists($key, $flags)) return true;
     return (string)$flags[$key] !== '0';
@@ -109,7 +108,6 @@ function snmp_driver_support_setting_key(string $driverId): string
 function snmp_driver_support_enabled(array $flags, string $driverId): bool
 {
     
-    if (!device_access_allows($driverId)) return false;
     $key = snmp_driver_support_setting_key($driverId);
     if (!array_key_exists($key, $flags)) return true;
     return (string)$flags[$key] !== '0';

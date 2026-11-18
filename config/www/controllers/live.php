@@ -90,6 +90,15 @@ function live_device_action_result(int $userId, string $type, array $input): arr
         $failureMessage = $code === 'scan_cooldown' ? 'Data sudah terupdate.' : ($code === 'forbidden'
             ? (($data['reason'] ?? '') === 'driver_disabled' ? 'Driver OLT sedang dinonaktifkan.' : 'Akses OLT tidak diizinkan.')
             : 'OLT tidak ditemukan.');
+    } elseif ($type === 'sync-snmp-device') {
+        $successMessage = 'Sinkronisasi perangkat berhasil.';
+        $failureMessage = match ($code) {
+            'not_found' => 'Perangkat tidak ditemukan.',
+            'forbidden' => 'Driver perangkat sedang dinonaktifkan.',
+            'conflict' => 'Sinkronisasi perangkat masih berjalan.',
+            'device_unreachable' => 'Sinkronisasi perangkat gagal. Periksa koneksi SNMP.',
+            default => 'Sinkronisasi perangkat gagal.',
+        };
     } elseif ($type === 'olt-view-refresh') {
         $successMessage = !empty($data['partial'])
             ? 'Data OLT diperbarui sebagian.' : 'Data OLT diperbarui.';
@@ -99,7 +108,7 @@ function live_device_action_result(int $userId, string $type, array $input): arr
         $failureMessage = 'PON gagal diperbarui.';
         $data['port'] = null;
     }
-    if (!$ok && !in_array($type, ['start-olt-discovery', 'olt-view-refresh', 'olt-port-update'], true)) {
+    if (!$ok && !in_array($type, ['start-olt-discovery', 'sync-snmp-device', 'olt-view-refresh', 'olt-port-update'], true)) {
         $failureMessage = match ($code) {
             'validation' => 'Periksa kembali data yang diisi.',
             'not_found' => 'Perangkat tidak ditemukan.',
@@ -167,6 +176,7 @@ function live_device_action_input_error(string $type, array $input): ?string
         'onu-ethernet-save' => $onuId > 0 && $port > 0 ? null : 'Port LAN tidak valid.',
         'onu-wifi-ssid-save' => $onuId > 0 && $port > 0 ? null : 'ONU atau port WiFi tidak valid.',
         'onu-wifi-config-save' => $onuId > 0 && $port > 0 && $vlanValid ? null : 'Pengaturan WiFi tidak valid.',
+        'sync-snmp-device' => (int)($input['device_row_id'] ?? 0) > 0 ? null : 'Perangkat tidak valid.',
         'onu-unconfigured-refresh', 'start-olt-discovery', 'olt-view-refresh', 'olt-port-update' => $oltId > 0
             ? null : 'OLT tidak valid.',
         'onu-action' => $onuId > 0 && trim((string)($input['onu_action'] ?? '')) !== ''

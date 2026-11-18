@@ -70,9 +70,9 @@ function handle_auth_action(string $action): bool
 
     if ($action === 'logout') {
         $GLOBALS['LINNMS_ACTION_LOG'] = [
-            'area' => 'LINNMS APP',
-            'level' => 'success',
-            'message' => 'Pengguna berhasil keluar dari aplikasi.',
+            'area' => 'Keamanan',
+            'level' => 'info',
+            'message' => 'berhasil keluar dari aplikasi',
         ];
         logout_user();
     }
@@ -82,22 +82,40 @@ function handle_auth_action(string $action): bool
         $password = (string)($_POST['password'] ?? '');
         $_SESSION['old_login_username'] = $username;
         if ($username === '' || $password === '') {
+            $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
+                'message' => 'percobaan login gagal: username atau password belum diisi'];
             flash('error', 'Username atau password salah');
             redirect('?page=login');
         }
         $result = linnms_auth_guest_request($action, ['username' => $username, 'password' => $password]);
         $code = (string)linnms_action_reason($result, 'internal');
         if ($code === 'inactive') {
+            $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
+                'message' => 'percobaan login gagal: akun tidak aktif'];
             flash('warning', 'Akun Anda sedang dinonaktifkan. Silakan hubungi administrator.');
             redirect('?page=login');
         }
         if (empty($result['ok'])) {
+            $rateLimited = $code === 'rate_limited';
+            $repeatedFailure = $code === 'repeated_failure';
+            $GLOBALS['LINNMS_ACTION_LOG'] = [
+                'area' => in_array($code, ['invalid_credentials', 'repeated_failure', 'rate_limited'], true) ? 'Keamanan' : 'System',
+                'level' => $rateLimited || $repeatedFailure ? 'warning' : ($code === 'invalid_credentials' ? 'info' : 'critical'),
+                'message' => $rateLimited
+                    ? 'percobaan login dibatasi karena terlalu banyak kegagalan'
+                    : ($repeatedFailure
+                        ? 'percobaan login gagal berulang kali: username atau password salah'
+                        : ($code === 'invalid_credentials'
+                            ? 'percobaan login gagal: username atau password salah'
+                            : 'percobaan login gagal: layanan autentikasi tidak tersedia'))];
             flash('error', 'Username atau password salah');
             redirect('?page=login');
         }
         $user = is_array($result['data'] ?? null) ? $result['data'] : [];
         unset($_SESSION['old_login_username']);
         linnms_sign_in_user($user);
+        $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
+            'message' => 'berhasil login'];
         redirect('?page=dashboard');
     }
 

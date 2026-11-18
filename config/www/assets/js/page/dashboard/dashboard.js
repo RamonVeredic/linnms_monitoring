@@ -349,6 +349,31 @@
   };
 
   document.addEventListener('submit', async (event) => {
+    const deviceForm = event.target instanceof HTMLFormElement && event.target.matches('[data-dashboard-device-sync]')
+      ? event.target : null;
+    if (deviceForm) {
+      event.preventDefault();
+      const button = deviceForm.querySelector('button[type="submit"]');
+      if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      const icon = button.querySelector('i');
+      icon?.classList.add('sync-loading-spinner');
+      try {
+        const response = await window.linnmsDashboardAjax.syncDevice(deviceForm);
+        const result = await response.json();
+        if (!response.ok || result.ok !== true) throw new Error(result.message || 'Sinkronisasi perangkat gagal.');
+        notifyDiscovery('success', result.message || 'Sinkronisasi perangkat berhasil.');
+      } catch (error) {
+        notifyDiscovery('error', String(error?.message || 'Sinkronisasi perangkat gagal.'));
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        icon?.classList.remove('sync-loading-spinner');
+        void load();
+      }
+      return;
+    }
     const discoveryForm = event.target instanceof HTMLFormElement && event.target.matches('[data-dashboard-discovery]')
       ? event.target : null;
     if (!discoveryForm) return;
