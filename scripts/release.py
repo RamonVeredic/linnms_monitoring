@@ -32,7 +32,7 @@ FORBIDDEN_SUFFIXES = {".sample", ".bak", ".orig", ".log", ".tmp", ".temp"}
 REQUIRED = {
     "config/app/runtime/app/paths.php",
     "config/app/runtime/backend/api.php",
-    "config/www/index.php",
+    "config/www/entrypoints/index.php",
     "nginx/nginx.conf",
     "nginx/site-confs/default.conf",
     "linnms.init.d/50-linnms-public-init",

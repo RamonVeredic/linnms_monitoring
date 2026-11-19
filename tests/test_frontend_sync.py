@@ -14,7 +14,6 @@ class FrontendSyncTests(unittest.TestCase):
         self.staging = self.root / "staging"
         self.staging.mkdir()
         self.export = self.root / "export"
-        self.put("config/www/index.php", "<?php require __DIR__ . '/entrypoints/index.php';")
         self.put("config/www/entrypoints/index.php", "<?php echo 'frontend';")
         self.put(
             "config/www/app/internal-api-client.php",
@@ -47,7 +46,6 @@ class FrontendSyncTests(unittest.TestCase):
             "config/www/app/internal-api-client.php",
             "config/www/assets/css/site.css",
             "config/www/entrypoints/index.php",
-            "config/www/index.php",
             "config/www/view/dashboard.php",
         ])
         self.assertIn(
@@ -64,7 +62,7 @@ class FrontendSyncTests(unittest.TestCase):
         self.assertFalse(self.export.exists())
 
     def test_missing_entrypoint_fails_closed(self):
-        (self.staging / "config/www/index.php").unlink()
+        (self.staging / "config/www/entrypoints/index.php").unlink()
         with self.assertRaisesRegex(ValueError, "Missing frontend/API bridge"):
             mirror(self.staging, self.export)
 

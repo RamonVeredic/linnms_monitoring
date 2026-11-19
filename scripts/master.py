@@ -8,7 +8,6 @@ import sys
 FRONTEND_TREE = pathlib.PurePosixPath("config/www")
 EXCLUDED_NAMES = {".git", ".github", "__pycache__", "vendor"}
 REQUIRED_FRONTEND_FILES = (
-    "index.php",
     "entrypoints/index.php",
     "app/internal-api-client.php",
 )

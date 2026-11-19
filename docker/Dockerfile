@@ -40,7 +40,7 @@ RUN set -eu; \
     find /opt/linnms -type f -name '*.php' -exec php -r \
       'foreach(array_slice($argv,1) as $f) { $h=fopen($f,"rb"); $b=fread($h,4); fclose($h); if ($b!=="LNC1") {fwrite(STDERR, "E31\n");exit(1);} }' \
       -- {} +; \
-    test -f /opt/linnms/frontend/index.php; \
+    test -f /opt/linnms/frontend/entrypoints/index.php; \
     test ! -e /opt/linnms/source-seed
 RUN php -d display_errors=1 -r 'require_once "/opt/linnms/runtime/app/paths.php"; require_once "/opt/linnms/runtime/config/config_default.php"; if (!class_exists("LinnmsDefaults")) { fwrite(STDERR, "E30\\n"); exit(1); } echo "BUILD_OK\\n";' \
     | grep -F BUILD_OK

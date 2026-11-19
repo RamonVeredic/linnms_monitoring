@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 build_context = pathlib.Path(sys.argv[1]).resolve(strict=True)
-if not (build_context / "bundle/config/www/index.php").is_file():
+if not (build_context / "bundle/config/www/entrypoints/index.php").is_file():
     raise SystemExit("E01")
 if not (build_context / "pq/loader/nx.c").is_file():
     raise SystemExit("E02")

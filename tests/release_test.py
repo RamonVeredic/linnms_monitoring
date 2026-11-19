@@ -43,7 +43,7 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("linnms.init.d/50-linnms-public-init", INIT)
         self._write("config/app/runtime/app/paths.php", "<?php echo 1;")
         self._write("config/app/runtime/backend/api.php", "<?php echo 1;")
-        self._write("config/www/index.php", "<?php echo 1;")
+        self._write("config/www/entrypoints/index.php", "<?php echo 1;")
         self._write("nginx/nginx.conf", "user abc;")
         self._write("nginx/site-confs/default.conf", "root /config/www;")
         self._write("docker/Dockerfile.staging", "FROM example")
@@ -101,7 +101,7 @@ class ReleaseFilterTest(unittest.TestCase):
         for php in (context / "bundle").rglob("*.php"):
             php.write_bytes(b"LNC1" + bytes(64))
         subprocess.run([sys.executable, str(VERIFY), str(context)], check=True)
-        unprotected = context / "bundle/config/www/index.php"
+        unprotected = context / "bundle/config/www/entrypoints/index.php"
         self.assertTrue(unprotected.read_bytes().startswith(b"LNC1"))
         protected = context / "bundle/config/app/runtime/vendor/driver/example1.php"
         protected.write_text("<?php echo 1;")

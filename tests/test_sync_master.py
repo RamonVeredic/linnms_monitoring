@@ -20,7 +20,6 @@ class MasterMirrorTests(unittest.TestCase):
                 "linnms.init.d", "linnms.service.d", "docker",
             ):
                 (source / folder).mkdir(parents=True, exist_ok=True)
-            (source / "config/www/index.php").write_text("<?php")
             (source / "config/www/entrypoints/index.php").write_text("<?php")
             (source / "config/www/app/internal-api-client.php").write_text(
                 "<?php function internal_api_request() {"
