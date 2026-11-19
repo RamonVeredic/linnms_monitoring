@@ -18,7 +18,7 @@
             <form method="post" action="<?= h(public_app_url('activate')) ?>" class="login-form">
                 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                 <input type="hidden" name="action" value="access_submit">
-                <div class="field"><label for="accessUsername">Username</label><input id="accessUsername" name="account" autocomplete="username" required autofocus placeholder="Masukkan Username" value="<?= h($presetUser ?? '') ?>"></div>
+                <div class="field"><label for="accessUsername">Username</label><input id="accessUsername" name="account" autocomplete="username" required autofocus placeholder="Masukkan username" value="<?= h($presetUser ?? '') ?>"></div>
                 <div class="field"><label for="accessToken">Key</label><input id="accessToken" name="token" autocomplete="off" required placeholder="LINNMS1-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX"></div>
                 <button class="button primary login-button" type="submit">Submit</button>
             </form>
