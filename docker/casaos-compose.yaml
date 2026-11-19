@@ -1,9 +1,9 @@
-name: LINNMS
+name: linnms
 services:
   app:
-    image: ghcr.io/ramonveredic/linnms:latest
-    container_name: LINNMS
-    hostname: LINNMS
+    image: ${LINNMS_IMAGE:-ghcr.io/ramonveredic/linnms:latest}
+    container_name: linnms
+    hostname: linnms
     restart: unless-stopped
     environment:
       - PUID=1000
@@ -14,26 +14,25 @@ services:
       - DB_USER=root
       - DB_PASSWORD=
     ports:
-      - target: 80
-        published: "88"
-        protocol: tcp
-      - target: 443
-        published: "4143"
-        protocol: tcp
+      - "84:80"
+      - "4143:443"
     volumes:
+      - linnms-state:/config
+      - linnms-run:/run/mysqld
       - type: bind
-        source: /DATA/AppData/LINNMS/state
-        target: /config
-      - type: bind
-        source: /DATA/AppData/LINNMS/run
-        target: /run/mysqld
+        # Use a local key file readable by the app user (PUID 1000).
+        source: ${LINNMS_LICENSE_PATH:-./license.key}
+        target: /run/secrets/linnms_license_key
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       db:
         condition: service_healthy
 
   db:
     image: mariadb:11.4
-    container_name: LINNMS-db
+    container_name: linnms-db
     restart: unless-stopped
     command:
       - --skip-networking
@@ -44,12 +43,8 @@ services:
       - MARIADB_AUTO_UPGRADE=1
       - TZ=Asia/Jakarta
     volumes:
-      - type: bind
-        source: /DATA/AppData/LINNMS/database
-        target: /var/lib/mysql
-      - type: bind
-        source: /DATA/AppData/LINNMS/run
-        target: /run/mysqld
+      - linnms-db:/var/lib/mysql
+      - linnms-run:/run/mysqld
     healthcheck:
       test:
         - CMD-SHELL
@@ -58,26 +53,7 @@ services:
       timeout: 5s
       retries: 30
       start_period: 10s
-
-x-casaos:
-  architectures:
-    - amd64
-    - arm64
-  author: RamonVeredic
-  category: Network
-  description:
-    en_us: Network Management System
-  developer: RamonVeredic
-  hostname: ""
-  icon: https://cdn.jsdelivr.net/gh/RamonVeredic/icon@main/LINNMS/original.png
-  index: /
-  is_uncontrolled: false
-  main: app
-  port_map: "88"
-  scheme: http
-  store_app_id: LINNMS
-  tagline:
-    en_us: Network Management System.
-  title:
-    custom: LINNMS
-    en_us: LINNMS
+volumes:
+  linnms-state:
+  linnms-db:
+  linnms-run:
