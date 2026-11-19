@@ -13,19 +13,13 @@ services:
       - DB_NAME=linnms_appliance
       - DB_USER=root
       - DB_PASSWORD=
+      - LINNMS_LICENSE_KEY=
     ports:
       - "84:80"
       - "4143:443"
     volumes:
       - linnms-state:/config
       - linnms-run:/run/mysqld
-      - type: bind
-        # Use a local key file readable by the app user (PUID 1000).
-        source: ${LINNMS_LICENSE_PATH:-./license.key}
-        target: /run/secrets/linnms_license_key
-        read_only: true
-        bind:
-          create_host_path: false
     depends_on:
       db:
         condition: service_healthy
