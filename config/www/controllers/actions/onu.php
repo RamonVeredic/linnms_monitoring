@@ -196,6 +196,13 @@ function handle_onu_action(string $action): bool
         $operation = trim((string)($_POST['operation'] ?? ''));
         $data['operation'] = $operation;
         $result = linnms_onu_action_request($uid, $action, $data);
+        if ($operation === 'rebootOp') {
+            if (!empty($result['ok'])) redirect($destination);
+            if (linnms_action_reason($result, '') === 'device_rejected') {
+                flash('error', 'Gagal melakukan reboot ONU. Perintah tidak dikonfirmasi oleh OLT.');
+                redirect($destination);
+            }
+        }
         if (empty($result['ok'])) linnms_onu_action_feedback($result,
             in_array((string)linnms_action_reason($result, ''), ['not_found', 'forbidden'], true) ? '?page=onus' : $destination);
         if ($operation === 'deleteOp') {
@@ -203,7 +210,6 @@ function handle_onu_action(string $action): bool
             redirect('?page=onus');
         }
         $label = match ($operation) {
-            'rebootOp' => 'Berhasil reboot ONU',
             'activeOp' => 'Berhasil mengaktifkan ONU',
             'noactiveOp' => 'Berhasil menonaktifkan ONU',
             'restoreOp' => 'Berhasil memulihkan ONU',

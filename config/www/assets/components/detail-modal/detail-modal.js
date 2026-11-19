@@ -68,11 +68,11 @@
     },
     m = {
       device: ["Jenis", "Alamat", "Model", "Info", "Status"],
-      online_onus: ["OLT", "Index", "Serial", "RX Power"],
-      down_onus: ["OLT", "Index", "Serial"],
-      loss_onus: ["OLT", "Index", "Serial"],
-      power_down_onus: ["OLT", "Index", "Serial", "RX Power"],
-      problem_onus: ["OLT", "Index", "Serial", "RX Power", "Note"],
+      online_onus: ["Serial ONU", "OLT", "Indeks", "RX Power"],
+      down_onus: ["Serial ONU", "OLT", "Indeks"],
+      loss_onus: ["Serial ONU", "OLT", "Indeks"],
+      power_down_onus: ["Serial ONU", "OLT", "Indeks", "RX Power"],
+      problem_onus: ["Serial ONU", "OLT", "Indeks", "RX Power", "Note"],
     },
     p = [...document.querySelectorAll("[data-dashboard-detail]")];
   let b = "",
@@ -112,21 +112,32 @@
     A = (e) => (u[e] || {}).kind || "onu",
     N = (e) => {
       const t = document.createElement("table");
+      const isDevice = e === "device";
+      const labels = m[isDevice ? "device" : b] || m.online_onus;
       t.className = "dashboard-detail-table";
-      const n = document.createElement("thead"),
-        a = document.createElement("tr");
-      return (
-        ((e) => m["device" === e ? "device" : b] || m.online_onus)(e).forEach(
-          (e) => {
-            const t = L(e, null, "th");
-            ((t.textContent = e), a.append(t));
-          },
-        ),
-        n.append(a),
-        t.append(n),
-        t.append(document.createElement("tbody")),
-        t
-      );
+      if (!isDevice) {
+        t.classList.add("dashboard-detail-onu-table");
+        if (b === "problem_onus") t.classList.add("dashboard-detail-problem-table");
+        const columns = document.createElement("colgroup");
+        const columnNames = ["serial", "olt", "index", "rx", "note"];
+        labels.forEach((_, index) => {
+          const column = document.createElement("col");
+          column.className = `dashboard-detail-onu-col-${columnNames[index]}`;
+          columns.append(column);
+        });
+        t.append(columns);
+      }
+
+      const head = document.createElement("thead");
+      const row = document.createElement("tr");
+      labels.forEach((label) => {
+        const cell = L(label, null, "th");
+        cell.scope = "col";
+        row.append(cell);
+      });
+      head.append(row);
+      t.append(head, document.createElement("tbody"));
+      return t;
     },
     C = (e = {}) => {
       const t = document.createElement("span");
@@ -307,7 +318,7 @@
             (a.dataset.detailDevice = String(t.olt || "")),
             a.setAttribute(
               "aria-label",
-              `Buka detail ONU ${t.olt} ${t.index}`,
+              `Buka detail ONU ${t.serial || t.index} pada ${t.olt}`,
             ));
           const e = document.createElement("span");
           e.className = `signal ${String(t.rx_class || "neutral")}`;
@@ -316,7 +327,7 @@
             n.setAttribute("aria-hidden", "true"),
             e.append(n, document.createElement("span")),
             (e.lastElementChild.textContent = String(t.rx || "-")));
-          const i = L("", "mono uppercase"),
+          const i = L("", "mono uppercase dashboard-detail-onu-serial"),
             r = document.createElement("span");
           ((r.className = "mono"),
             (r.dataset.serialValue = ""),
@@ -339,13 +350,13 @@
             s.append(r, o),
             i.append(s),
             a.append(
-              L(String(t.olt || "")),
-              L(String(t.index || ""), "mono"),
               i,
+              L(String(t.olt || "")),
+              L(String(t.index || ""), "mono dashboard-detail-onu-index"),
             ),
             !["down_onus", "loss_onus"].includes(b))
           ) {
-            const t = L("");
+            const t = L("", "dashboard-detail-onu-rx");
             (t.append(e), a.append(t));
           }
           if ("problem_onus" === b) {

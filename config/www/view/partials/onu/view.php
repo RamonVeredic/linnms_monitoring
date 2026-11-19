@@ -170,17 +170,14 @@ if ($rxValue !== null) {
         $optic = ['class' => 'good', 'label' => 'Good'];
     }
 }
-$pendingOperation = '';
-$pendingSince = '';
-$rebootPending = $pendingOperation === 'rebootOp';
-$rebootElapsed = 0;
-if ($rebootPending && $pendingSince !== '') {
-    $pendingTs = strtotime($pendingSince);
-    if ($pendingTs !== false) $rebootElapsed = max(0, time() - $pendingTs);
-}
+$reboot = (array)($readData['reboot'] ?? []);
+$rebootPhase = (string)($reboot['phase'] ?? '');
+$rebootPending = $rebootPhase === 'pending';
+$rebootElapsed = $rebootPending ? max(0, time() - (int)$reboot['started_at']) : 0;
+$observedState = !$rebootPending ? ($reboot['observed'] ?? null) : null;
 
 $effectiveStateKey = effective_onu_state_key(
-    $onuDetail['onu_state'] ?? null,
+    $observedState ?? $onuDetail['onu_state'] ?? null,
     $onuDetail['rx_power'] ?? null,
     onu_loss_without_rx($onuDetail)
 );
@@ -256,6 +253,8 @@ $formatNumeric = static function (mixed $value, int $decimals = 2, string $suffi
         'onuIsProblem' => $onuIsProblem,
         'onuProblemDescription' => $onuProblemDescription,
         'rebootPending' => $rebootPending,
+        'rebootPhase' => $rebootPhase,
+        'rebootSawDown' => !empty($reboot['saw_down']),
         'rebootElapsed' => $rebootElapsed,
         'optic' => $optic,
         'rx' => $onu_rxPower,

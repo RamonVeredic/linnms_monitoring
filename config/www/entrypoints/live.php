@@ -34,6 +34,19 @@ $userId = current_user_id();
 $type = trim((string)($_GET['type'] ?? ''));
 
 
+if ($type === 'onu-reboot-status') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') $respondError('method_not_allowed');
+    $rowId = public_resource_id((string)($_GET['ref'] ?? ''), 'onu');
+    session_write_close();
+    if ($rowId === null) $respondError('not_found');
+    try {
+        $status = internal_api_request($userId, 'onu.reboot.status', ['row_id' => $rowId]);
+        $respond(['ok' => true] + $status);
+    } catch (Throwable) {
+        $respondError('internal');
+    }
+}
+
 $directSnmpTypes = ['device-traffic', 'device-interface-rates'];
 if (in_array($type, $directSnmpTypes, true)) {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {

@@ -15,6 +15,13 @@ if (empty($onuView['ok'])) {
     return;
 }
 extract($onuView);
+$rebootMessages = [
+    'confirm' => 'Jalankan reboot pada ONU ini?',
+    'monitoring' => 'Memantau status ONU setelah perintah reboot.',
+    'waiting_up' => 'Menunggu ONU kembali Up.',
+    'unconfirmed' => 'Reboot belum terkonfirmasi. Perubahan ke status Down tidak teramati dalam 10 detik.',
+    'recovery_timeout' => 'ONU terdeteksi Down setelah reboot dan belum kembali Up dalam 5 menit.',
+];
 
 $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
     ? 'unknown__status'
@@ -23,15 +30,21 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
 ?>
 
 <?php if ($rebootPending): ?>
-    <section class="panel reboot-panel">
+    <section class="panel reboot-panel" data-onu-reboot-ref="<?= h(public_resource_token('onu', $id)) ?>"
+             data-waiting-up="<?= h($rebootMessages['waiting_up']) ?>"
+             data-unconfirmed="<?= h($rebootMessages['unconfirmed']) ?>"
+             data-recovery-timeout="<?= h($rebootMessages['recovery_timeout']) ?>">
         <header class="tittle-subtitle">
             <div>
                 <h3><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reboot</h3>
-                <p>Menunggu ONU kembali aktif.</p>
+                <p data-onu-reboot-description><?= h($rebootMessages[$rebootSawDown ? 'waiting_up' : 'monitoring']) ?></p>
             </div>
-            <span class="status warning"><?= (int)$rebootElapsed ?> detik</span>
+            <span class="status warning" data-onu-reboot-elapsed="<?= (int)$rebootElapsed ?>"><?= (int)$rebootElapsed ?> detik</span>
         </header>
     </section>
+    <p class="notice" data-onu-reboot-notice role="status" hidden></p>
+<?php elseif ($rebootPhase === 'unconfirmed'): ?>
+    <p class="notice"><?= h($rebootMessages[$rebootSawDown ? 'recovery_timeout' : 'unconfirmed']) ?></p>
 <?php endif; ?>
 
 <div class="onu-view">
@@ -42,17 +55,16 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
         </div>
         <div>
             <h2><?= h($name) ?></h2>
-                <div class="text-muted onu-detail-state <?= h($displayStateClass) ?>"> 
-                    
-                       <?php if ($rebootPending): ?>Rebooting<?php else: ?>
-                           <span class="onu-olt-name"><?= h($oltName) ?></span>
-                          
-                           —
-                          <span class="status-dot <?= h($displayDotClass) ?>" aria-hidden="true"></span>
-
-                           <span class="onu-operational-state"><?= h($operationalStateLabel) ?></span><?php if ($onuIsProblem): ?>
-                           <?php endif; ?>
-                       <?php endif; ?>
+                <div class="text-muted onu-detail-state <?= h($displayStateClass) ?>" data-onu-detail-state aria-live="polite">
+                    <?php if ($rebootPending): ?>
+                        <span data-onu-reboot-state><?= $rebootSawDown ? 'Startup' : 'Rebooting' ?></span>
+                    <?php endif; ?>
+                    <span data-onu-normal-state<?= $rebootPending ? ' hidden' : '' ?>>
+                        <span class="onu-olt-name"><?= h($oltName) ?></span>
+                        —
+                        <span class="status-dot <?= h($displayDotClass) ?>" aria-hidden="true"></span>
+                        <span class="onu-operational-state"><?= h($operationalStateLabel) ?></span>
+                    </span>
                 </div>
                 <?php if ($onuIsProblem && trim((string)$onuProblemDescription) !== ''): ?>
                     <small class="onu-problem-description"><?= h((string)$onuProblemDescription) ?></small>
@@ -60,7 +72,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
         </div>
     </div>
     <div class="onu-detail-hero-meta">
-        <button class="button secondary" type="button" data-onu-modal-open="onuActionModal" <?= $rebootPending ? 'disabled' : '' ?>>
+        <button class="button secondary" type="button" data-onu-modal-open="onuActionModal" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>>
             <i class="bi bi-sliders" aria-hidden="true"></i><span class="btn-text">Tindakan</span>
         </button>
     </div>
@@ -76,7 +88,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
                 <div class="onu-info-list">
 
                     <div>
-                        <div class="onu-info-label-row"><span class="label">Nama</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit nama ONU" title="Edit nama ONU" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+                        <div class="onu-info-label-row"><span class="label">Nama</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit nama ONU" title="Edit nama ONU" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
                         <div class="value">
                             <div class="onu-field-edit-shell onu-inline-edit-shell">
                                 <input class="onu-inline-edit-control" name="onu_name" maxlength="30" required value="<?= h($name === '—' ? '' : $name) ?>" placeholder="—" data-onu-edit-control disabled aria-label="Nama ONU">
@@ -84,18 +96,18 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
                         </div>
                     </div>
                     <div>
-                        <div class="onu-info-label-row"><span class="label">Lokasi</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit lokasi ONU" title="Edit lokasi ONU" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+                        <div class="onu-info-label-row"><span class="label">Lokasi</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit lokasi ONU" title="Edit lokasi ONU" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
                         <div class="value"><span class="onu-field-edit-shell onu-inline-edit-shell"><input class="onu-inline-edit-control" name="onu_location" maxlength="255" value="<?= h(onu_location_value($location)) ?>" placeholder="—" data-onu-edit-control disabled aria-label="Lokasi ONU"></span></div>
                     </div>
                     <div>
-                        <div class="onu-info-label-row"><span class="label">Register</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit status register" title="Edit status register" <?= $rebootPending || $authMode === 'uncfg' ? 'disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+                        <div class="onu-info-label-row"><span class="label">Register</span><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit status register" title="Edit status register" <?= $authMode === 'uncfg' ? 'disabled' : ($rebootPending ? 'disabled data-onu-reboot-disabled' : '') ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit" title="Batal edit"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
                         <div class="value">
                             <span class="onu-field-edit-shell onu-field-edit-select onu-inline-edit-shell"><select class="onu-inline-edit-control auth-<?= h($authIndicatorClass) ?>" name="auth_mode" required data-onu-edit-control disabled aria-label="Status register ONU"><?php if ($authMode === 'uncfg'): ?><option value="uncfg" selected disabled><?= h($registerLabels['uncfg'] ?? 'Uncfg') ?></option><?php endif; ?><?php if ($authMode === '—'): ?><option value="" selected disabled>—</option><?php endif; ?><?php foreach (['Undef', 'Pass', 'Deny'] as $mode): ?><option value="<?= h($mode) ?>" <?= strcasecmp($authMode, $mode) === 0 ? 'selected' : '' ?>><?= h($registerLabels[$mode]) ?></option><?php endforeach; ?></select></span>
                         </div>
                     </div>
 
                     <div>
-                        <div class="onu-info-label-row"><span class="label">Serial ONU</span><?php if (!in_array($authMode, ['Undef', 'uncfg'], true)): ?><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Ganti Serial ONU" title="Ganti Serial ONU" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal ganti Serial ONU" title="Batal ganti Serial ONU"><i class="bi bi-x-lg" aria-hidden="true"></i></button><?php endif; ?></div>
+                        <div class="onu-info-label-row"><span class="label">Serial ONU</span><?php if (!in_array($authMode, ['Undef', 'uncfg'], true)): ?><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Ganti Serial ONU" title="Ganti Serial ONU" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal ganti Serial ONU" title="Batal ganti Serial ONU"><i class="bi bi-x-lg" aria-hidden="true"></i></button><?php endif; ?></div>
                         <div class="value">
                             <?php if (!in_array($authMode, ['Undef', 'uncfg'], true)): ?>
                                 <span class="onu-field-edit-shell onu-field-edit-select onu-inline-edit-shell"><select class="onu-inline-edit-control" name="replacement_onu_row_id" data-select-checkbox data-select-menu-class="onu-select-menu" data-onu-edit-control data-onu-serial-replacement data-select-search="Cari serial..." data-select-icon="bi bi-upc-scan" required disabled aria-label="Serial ONU"><option value="" selected disabled><?= h($serial) ?></option><optgroup label="Serial pengganti"><?php foreach ($replacementOnus as $replacementOnu): ?><?php $replacementSerial = display_onu_serial($replacementOnu['onu_serial'] ?? null); $replacementIndex = trim((string)($replacementOnu['onu_index'] ?? '')); ?><option value="<?= (int)$replacementOnu['id'] ?>"><?= h($replacementSerial . ($replacementIndex !== '' ? ' · ' . $replacementIndex : '')) ?></option><?php endforeach; ?></optgroup></select></span>
@@ -104,7 +116,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
                     </div>
 
                     <div>
-                        <div class="onu-info-label-row"><span class="label">ONU Type</span><?php if ($onuTypeChoices !== []): ?><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit ONU Type" title="Edit ONU Type"<?= $rebootPending ? ' disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit ONU Type" title="Batal edit ONU Type"><i class="bi bi-x-lg" aria-hidden="true"></i></button><?php endif; ?></div>
+                        <div class="onu-info-label-row"><span class="label">ONU Type</span><?php if ($onuTypeChoices !== []): ?><button class="onu-field-edit-button" type="button" data-onu-field-edit aria-label="Edit ONU Type" title="Edit ONU Type"<?= $rebootPending ? ' disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="onu-field-edit-button" type="button" data-onu-field-cancel style="display:none" aria-label="Batal edit ONU Type" title="Batal edit ONU Type"><i class="bi bi-x-lg" aria-hidden="true"></i></button><?php endif; ?></div>
                         <div class="value">
                             <?php if ($onuTypeChoices !== []): ?>
                                 <span class="onu-field-edit-shell onu-field-edit-select onu-inline-edit-shell">
@@ -240,7 +252,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             </div>
             <div class="onu-control-modal-actions">
                 <button class="button secondary" type="button" data-onu-modal-close>Batal</button>
-                <button class="button primary" type="submit" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-arrow-left-right" aria-hidden="true"></i>Ganti Serial</button>
+                <button class="button primary" type="submit" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-arrow-left-right" aria-hidden="true"></i>Ganti Serial</button>
             </div>
         </form>
 
@@ -249,7 +261,7 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             <input type="hidden" name="action" value="unregister_onu">
             <input type="hidden" name="onu_row_id" value="<?= (int)$onuView['id'] ?>"><input type="hidden" name="olt_device_id" value="<?= (int)($onuView['olt_device_id'] ?? 0) ?>"><input type="hidden" name="driver_id" value="<?= h((string)device_driver_type($onuView)) ?>">
             <div class="onu-control-modal-actions">
-                <button class="button button-danger" type="submit" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-trash" aria-hidden="true"></i></button>
+                <button class="button button-danger" type="submit" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-trash" aria-hidden="true"></i></button>
             </div>
         </form>
     </div>
@@ -268,11 +280,11 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="save_onu_control">
             <input type="hidden" name="onu_row_id" value="<?= (int)$onuView['id'] ?>"><input type="hidden" name="olt_device_id" value="<?= (int)($onuView['olt_device_id'] ?? 0) ?>"><input type="hidden" name="driver_id" value="<?= h((string)device_driver_type($onuView)) ?>">
-            <div class="field"><label for="onuConfirmName">Nama ONU</label><input id="onuConfirmName" name="onu_name" maxlength="30" required value="<?= h($name === '—' ? '' : $name) ?>" <?= $rebootPending ? 'disabled' : '' ?>></div>
-            <div class="field"><label for="onuConfirmLocation">Alamat / Lokasi</label><input id="onuConfirmLocation" name="onu_location" maxlength="255" value="<?= h(onu_location_value($location)) ?>" placeholder="—" <?= $rebootPending ? 'disabled' : '' ?>></div>
+            <div class="field"><label for="onuConfirmName">Nama ONU</label><input id="onuConfirmName" name="onu_name" maxlength="30" required value="<?= h($name === '—' ? '' : $name) ?>" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>></div>
+            <div class="field"><label for="onuConfirmLocation">Alamat / Lokasi</label><input id="onuConfirmLocation" name="onu_location" maxlength="255" value="<?= h(onu_location_value($location)) ?>" placeholder="—" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>></div>
             <div class="onu-control-modal-actions">
                 <button class="button secondary" type="button" data-onu-modal-close>Batal</button>
-                <button class="button primary" <?= $rebootPending ? 'disabled' : '' ?>><i class="bi bi-floppy" aria-hidden="true"></i>Konfirmasi</button>
+                <button class="button primary" <?= $rebootPending ? 'disabled data-onu-reboot-disabled' : '' ?>><i class="bi bi-floppy" aria-hidden="true"></i>Konfirmasi</button>
             </div>
         </form>
     </div>
@@ -284,17 +296,18 @@ $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0
             <div><h2 id="onuActionModalTitle">Tindakan</h2></div>
             <button class="icon-button modal-close-button" type="button" data-onu-modal-close aria-label="Tutup modal"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
-        <form method="post" class="onu-control-modal-form" data-onu-action-form onsubmit="const operation=event.submitter?.value;if(!operation)return false;this.elements.action.value=operation==='deleteOp'?'delete_onu':'onu_operation';return operation==='deleteOp'||confirm('Jalankan '+event.submitter.textContent.trim()+' pada ONU ini?');">
+        <form method="post" class="onu-control-modal-form" data-onu-action-form>
             <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
             <input type="hidden" name="action" value="onu_operation">
             <input type="hidden" name="onu_row_id" value="<?= (int)$onuView['id'] ?>"><input type="hidden" name="olt_device_id" value="<?= (int)($onuView['olt_device_id'] ?? 0) ?>"><input type="hidden" name="driver_id" value="<?= h((string)device_driver_type($onuView)) ?>">
             <div class="onu-control-modal-actions">
                 <?php foreach ((array)($onuViewCapabilities['onu_actions'] ?? []) as $onuAction): ?>
                     <?php $supported = !empty($onuAction['supported']); $danger = !empty($onuAction['danger']); ?>
-                    <button class="button <?= $danger ? 'button-danger' : 'secondary' ?><?= $supported ? '' : ' is-pending-support' ?>" type="submit" name="operation" value="<?= h((string)$onuAction['operation']) ?>"<?= $danger ? ' data-device-delete-trigger' : '' ?><?= $rebootPending || !$supported ? ' disabled' : '' ?><?= $supported ? '' : ' title="Belum didukung driver ini"' ?>><?= h((string)$onuAction['label']) ?></button>
+                    <button class="button <?= $danger ? 'button-danger' : 'secondary' ?><?= $supported ? '' : ' is-pending-support' ?>" type="submit" name="operation" value="<?= h((string)$onuAction['operation']) ?>"<?= $danger ? ' data-device-delete-trigger' : '' ?><?= !$supported ? ' disabled' : ($rebootPending ? ' disabled data-onu-reboot-disabled' : '') ?><?= $supported ? '' : ' title="Belum didukung driver ini"' ?>><?= h((string)$onuAction['label']) ?></button>
                 <?php endforeach; ?>
                 <button class="button secondary" type="button" data-onu-modal-close>Batal</button>
             </div>
+            <div data-onu-reboot-confirm="<?= h($rebootMessages['confirm']) ?>"></div>
             <?php if (array_filter((array)($onuViewCapabilities['onu_actions'] ?? []), static fn(array $action): bool => empty($action['supported'])) !== []): ?>
                 <p class="onu-action-pending-note">Tombol kuning belum didukung driver ini</p>
             <?php endif; ?>

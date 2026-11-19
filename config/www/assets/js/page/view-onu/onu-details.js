@@ -1,6 +1,71 @@
 (() => {
   'use strict';
 
+  const rebootPanel = document.querySelector('[data-onu-reboot-ref]');
+  if (rebootPanel) {
+    const elapsed = rebootPanel.querySelector('[data-onu-reboot-elapsed]');
+    const description = rebootPanel.querySelector('[data-onu-reboot-description]');
+    const rebootState = document.querySelector('[data-onu-reboot-state]');
+    const normalState = document.querySelector('[data-onu-normal-state]');
+    const detailState = document.querySelector('[data-onu-detail-state]');
+    const notice = document.querySelector('[data-onu-reboot-notice]');
+    const initialElapsed = Number(elapsed?.dataset.onuRebootElapsed || 0);
+    const started = Date.now();
+    const endpoint = document.body.dataset.liveUrl || 'live.php';
+    const interval = 2000;
+    const check = async () => {
+      const pollStarted = Date.now();
+      let delay = interval;
+      if (elapsed) elapsed.textContent = `${initialElapsed + Math.floor((pollStarted - started) / 1000)} detik`;
+      try {
+        const response = await window.linnmsAjax.request(
+          `${endpoint}?type=onu-reboot-status&ref=${encodeURIComponent(rebootPanel.dataset.onuRebootRef)}`,
+          { credentials: 'same-origin', cache: 'no-store' },
+        );
+        if (response.status === 401 || response.status === 403) return;
+        const status = await response.json();
+        if (response.ok && status.ok) {
+          if (status.phase !== 'pending') {
+            rebootPanel.hidden = true;
+            rebootState?.remove();
+            if (normalState) {
+              if (status.observed === 'Up' || status.observed === 'Down') {
+                const isUp = status.observed === 'Up';
+                const label = normalState.querySelector('.onu-operational-state');
+                const dot = normalState.querySelector('.status-dot');
+                if (label) label.textContent = status.observed;
+                dot?.classList.remove('success', 'danger', 'neutral');
+                dot?.classList.add(isUp ? 'success' : 'danger');
+                detailState?.classList.remove('is-up', 'is-down', 'is-neutral', 'is-problem');
+                detailState?.classList.add(isUp ? 'is-up' : 'is-down');
+              }
+              normalState.hidden = false;
+            }
+            document.querySelectorAll('[data-onu-reboot-disabled]').forEach(control => {
+              control.disabled = false;
+              control.removeAttribute('data-onu-reboot-disabled');
+            });
+            if (notice && status.phase === 'unconfirmed') {
+              notice.textContent = status.saw_down ? rebootPanel.dataset.recoveryTimeout : rebootPanel.dataset.unconfirmed;
+              notice.hidden = false;
+            }
+            return;
+          }
+          if (status.saw_down) {
+            if (rebootState && rebootState.textContent !== 'Startup') rebootState.textContent = 'Startup';
+            if (description && description.textContent !== rebootPanel.dataset.waitingUp) {
+              description.textContent = rebootPanel.dataset.waitingUp;
+            }
+
+          }
+          delay = Math.min(delay, Number(status.next_poll_ms) || interval);
+        }
+      } catch {}
+      window.setTimeout(check, delay);
+    };
+    check();
+  }
+
   document.querySelector('[data-onu-wifi-ssid-form]')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -106,9 +171,67 @@
     resetOnuEditForm(cancel.closest('[data-onu-edit-form]'));
   });
 
+  const actionForm = document.querySelector('[data-onu-action-form]');
+  const rebootConfirm = actionForm?.querySelector('[data-onu-reboot-confirm]');
+  let rebootConfirmed = false;
+  actionForm?.addEventListener('submit', (event) => {
+    const submitter = event.submitter;
+    const operation = submitter?.value;
+    if (!operation) {
+      event.preventDefault();
+      return;
+    }
+
+    actionForm.elements.namedItem('action').value = operation === 'deleteOp' ? 'delete_onu' : 'onu_operation';
+    if (operation === 'deleteOp') return;
+    if (operation !== 'rebootOp') {
+      if (!window.confirm(`Jalankan ${submitter.textContent.trim()} pada ONU ini?`)) event.preventDefault();
+      return;
+    }
+    if (rebootConfirmed) return;
+
+    event.preventDefault();
+    if (!rebootConfirm || typeof window.linnmsToast !== 'function' || rebootConfirm.hasChildNodes()) return;
+    const toast = window.linnmsToast('warning', rebootConfirm.dataset.onuRebootConfirm, {
+      mount: rebootConfirm,
+      timeout: 0,
+      closeable: false,
+    });
+    const message = toast?.querySelector('.linnms-toast-message');
+    if (!message) return;
+
+    const actions = document.createElement('span');
+    actions.className = 'onu-control-modal-actions';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'button secondary';
+    cancel.textContent = 'Batal';
+    cancel.addEventListener('click', () => {
+      toast.remove();
+      submitter.focus();
+    });
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.className = 'button primary';
+    confirm.textContent = 'Reboot';
+    confirm.addEventListener('click', () => {
+      toast.remove();
+      rebootConfirmed = true;
+      try {
+        actionForm.requestSubmit(submitter);
+      } finally {
+        rebootConfirmed = false;
+      }
+    });
+    actions.append(cancel, confirm);
+    message.append(actions);
+    cancel.focus();
+  });
+
   const closeModal = (modal) => {
     if (!modal) return;
     resetOnuEditForm(modal.querySelector('[data-onu-edit-form]'));
+    modal.querySelector('[data-onu-reboot-confirm]')?.replaceChildren();
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     if (!document.querySelector('.onu-control-modal:not([hidden])')) {

@@ -14,15 +14,19 @@ $requestPath = '/' . trim($requestPath, '/');
 $activationUrl = public_app_url('activate');
 $setupUrl = public_app_url('setup');
 
-$entry = internal_api_request(current_user_id(), 'app.entry.read');
+$prepareSetup = $requestMethod === 'GET' && $requestPath === '/setup';
+$entry = internal_api_request(current_user_id(), 'app.entry.read',
+    ['prepare_setup' => $prepareSetup], $prepareSetup ? 40 : 10);
 if (!isset($entry['mode']) || !is_array($entry['identity'] ?? null)) {
     throw new RuntimeException('Kontrak entry aplikasi tidak lengkap.');
 }
 $mode = (string)$entry['mode'];
+$needsActivation = in_array($mode, ['pending', 'fault'], true);
+$setupWithLicense = $needsActivation && !empty($entry['setup_license_configured']);
 if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_submit'], true)) {
     try {
         verify_csrf();
-        if ($operation === 'access_submit' && ($requestPath !== '/activate' || !in_array($mode, ['pending', 'fault'], true))) {
+        if ($operation === 'access_submit' && ($requestPath !== '/activate' || !$needsActivation || $setupWithLicense)) {
             throw new RuntimeException('Aktivasi tidak tersedia.');
         }
         if ($operation === 'setup_submit' && ($requestPath !== '/setup' || $mode !== 'ready')) {
@@ -51,7 +55,7 @@ if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_s
         exit;
     } catch (Throwable $error) {
         flash('error', $error->getMessage());
-        header('Location: ' . ($operation === 'access_submit' ? $activationUrl : $setupUrl), true, 303);
+        header('Location: ' . ($operation === 'access_submit' && !$setupWithLicense ? $activationUrl : $setupUrl), true, 303);
         exit;
     }
 }
@@ -59,7 +63,7 @@ if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_s
 $identity = $entry['identity'];
 $appName = (string)$identity['name'];
 $appVersion = (string)$identity['version'];
-if (in_array($mode, ['pending', 'fault'], true)) {
+if ($needsActivation && !$setupWithLicense) {
     if ($requestPath !== '/activate') { header('Location: ' . $activationUrl, true, 303); exit; }
     $presetUser = '';
     $flashes = pull_flashes();
@@ -77,6 +81,7 @@ if (empty($entry['profile_exists'])) {
     if ($requestPath !== '/setup') { header('Location: ' . $setupUrl, true, 303); exit; }
     $flashes = pull_flashes();
     $presetUser = mb_strtolower(trim((string)($entry['subject'] ?? '')));
+    $setupError = $setupWithLicense ? (string)($entry['setup_error'] ?: 'Username pelanggan belum tersedia dari CP.') : '';
     $setupContact = is_array($entry['service_contact'] ?? null) ? $entry['service_contact'] : [];
     $presetEmail = (string)($setupContact['email'] ?? '');
     $presetCompany = (string)($setupContact['company'] ?? '');

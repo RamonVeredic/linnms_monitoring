@@ -50,7 +50,7 @@ $switchServiceLimitLabel = $switchServiceLimit === 0 ? 'Unlimited' : (string)$sw
                     <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                     <input type="hidden" name="action" value="update_profile">
                     <div class="form-grid">
-                        <div class="field"><label for="profileDisplayName">Nama</label><input id="profileDisplayName" name="display_name" maxlength="60" required value="<?= h((string) ($user['display_name'] ?? '')) ?>"></div>
+                        <div class="field"><label for="profileDisplayName">Nama Lengkap</label><input id="profileDisplayName" name="display_name" maxlength="60" placeholder="Masukkan nama lengkap" required value="<?= h((string) ($user['display_name'] ?? '')) ?>"></div>
                         <div class="field"><label for="profileUsername">Username</label><input class="muted" id="profileUsername" value="<?= h((string) ($user['username'] ?? '')) ?>" readonly autocomplete="username"></div>
                         <div class="field"><label for="profileContact">WhatsApp</label><input id="profileContact" name="phone_number" type="tel" maxlength="24" autocomplete="tel" value="<?= h((string) ($user['phone_number'] ?? '')) ?>"></div>
                         <div class="field"><label for="profileCurrentPassword">Password Saat Ini</label><input id="profileCurrentPassword" type="password" name="current_password" required autocomplete="current-password"></div>
