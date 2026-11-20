@@ -34,6 +34,10 @@ COPY bundle/linnms.service.d/ /custom-services.d/
 RUN mkdir -p /opt/linnms/app \
     && ln -s ../config /opt/linnms/app/config \
     && test -f /opt/linnms/app/config/session.php
+RUN --mount=type=bind,source=bundle/config/app,target=/mnt/app-source \
+    if [ -f /mnt/app-source/default/toats_message.txt ]; then \
+      install -D -m 0644 /mnt/app-source/default/toats_message.txt /opt/linnms/app/default/toats_message.txt; \
+    fi
 RUN set -eu; \
     ! find /opt/linnms -name .github -o -name .git -o -name 'Dockerfile*' -o -name '*.sample' | grep .; \
     ! grep -E 'SOURCE_(MOUNTS|ROOT|SEED)|staging|source-seed' /custom-cont-init.d/50-linnms-public-init; \

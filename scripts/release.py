@@ -13,6 +13,7 @@ NGINX_FILES = {
     "nginx/php/www2.conf", "nginx/site-confs/default.conf",
 }
 CONFIG_FILES = {
+    "config/app/default/toats_message.txt",
     "config/app/config/monitoring-drivers.php",
     "config/app/config/public-entry.php",
     "config/app/config/service.php",
