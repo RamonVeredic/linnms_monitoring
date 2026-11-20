@@ -22,10 +22,10 @@
       try {
         const result = await window.linnmsInstantPost(form, body);
         savedIds = new Set(deviceCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value));
-        window.linnmsInstantNotify('success', result.message || 'Pilihan perangkat berhasil disimpan.');
+        window.linnmsInstantNotify('success', result.message || window.linnmsToastMessage("js.alert.devices-saved"));
       } catch (error) {
         deviceCheckboxes.forEach((checkbox) => { checkbox.checked = savedIds.has(checkbox.value); });
-        window.linnmsInstantNotify('error', error instanceof Error ? error.message : 'Pilihan perangkat belum berhasil disimpan.');
+        window.linnmsInstantNotify('error', error instanceof Error ? error.message : window.linnmsToastMessage("js.alert.devices-failed"));
       } finally {
         deviceCheckboxes.forEach((checkbox) => { checkbox.disabled = false; });
         saving = false;

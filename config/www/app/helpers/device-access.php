@@ -69,7 +69,7 @@ function device_row_access_locked(array $row): bool
 
 function device_access_lock_message(): string
 {
-    return 'Perangkat belum tersedia.';
+    return toast_message('device.unsupported');
 }
 
 

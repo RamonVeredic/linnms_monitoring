@@ -110,7 +110,7 @@
         });
         const data = await response.json().catch(() => ({}));
         const ok = response.ok && data.ok === true;
-        const message = String(data.message || (ok ? 'Koneksi berhasil.' : 'Koneksi belum berhasil.'));
+        const message = String(data.message || (ok ? window.linnmsToastMessage("js.device.connected") : window.linnmsToastMessage("js.device.connect-failed")));
         if (typeof window.linnmsToast === 'function') window.linnmsToast(ok ? 'success' : 'error', message);
         else showResult(message, ok ? 'success' : 'error');
       } catch {
@@ -143,7 +143,7 @@
       const response = await window.linnmsAjax.request(url.toString(), { signal: request.signal, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.ok !== true || typeof data.html !== 'string') {
-        throw new Error(String(data.message || 'Form edit perangkat tidak dapat dimuat.'));
+        throw new Error(String(data.message || window.linnmsToastMessage("js.device.edit-load-failed")));
       }
       title.textContent = String(data.title || 'Edit Perangkat');
       body.innerHTML = data.html;
@@ -153,7 +153,7 @@
       (focusTarget instanceof HTMLElement ? focusTarget : closeButton)?.focus({ preventScroll: true });
     } catch (error) {
       if (error?.name === 'AbortError' || modal.hidden) return;
-      body.textContent = error instanceof Error ? error.message : 'Form edit perangkat tidak dapat dimuat.';
+      body.textContent = error instanceof Error ? error.message : window.linnmsToastMessage("js.device.edit-load-failed");
       body.setAttribute('role', 'alert');
     }
   };

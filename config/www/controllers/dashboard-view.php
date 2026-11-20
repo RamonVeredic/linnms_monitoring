@@ -83,7 +83,7 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     $scanRow = is_array($statuses[(string)$id] ?? null) ? $statuses[(string)$id] : [];
     $scanStatus = (string)($scanRow['status'] ?? '');
     $scanError = (string)($scanRow['last_error'] ?? '');
-    $hasSynced = trim((string)($olt['seen_at'] ?? '')) !== '';
+    $hasSynced = trim((string)($olt['system_seen_at'] ?? '')) !== '';
     $failed = !$activeScan && $scanStatus === 'failed';
     $scanProgress = max(0, min(100, (int)($scanRow['progress'] ?? 0)));
     $scanPhase = trim((string)($scanRow['phase'] ?? ''));
@@ -113,7 +113,11 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     }
 
     $connections = [];
-    if ($isApi) {
+    if (empty($olt['driver_supported'])) {
+        $scanAction = null;
+        $activeScan = $pending = $failed = false;
+        $connections[] = dashboard_chip('unknown', 'Tidak didukung', device_access_lock_message());
+    } elseif ($isApi) {
         $connections[] = dashboard_chip('success', 'API');
     } elseif ($isSnmp) {
         $chip = dashboard_olt_chip((string)($olt['driver_status'] ?? ''), (int)($olt['snmp_fail_count'] ?? 0));
@@ -134,7 +138,7 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
         'model' => display_model_chars($olt['model'] ?? ''),
         'system_name' => trim((string)($olt['system_name'] ?? '')),
         'row_url' => public_page_url('view-olt', ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, (string)($olt['seen_at'] ?? ''), $scanError, $scanProgress, $scanPhase),
+        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, (string)($olt['system_seen_at'] ?? ''), $scanError, $scanProgress, $scanPhase),
         'connections' => $connections,
         'scan' => $scanAction,
         'edit_url' => public_page_url('dashboard', ['edit_device' => $id]),
@@ -146,12 +150,12 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
 function dashboard_snmp_row(array $device, int $number, array $group): array
 {
     $id = (int)($device['id'] ?? 0);
-    $hasSynced = trim((string)($device['seen_at'] ?? '')) !== '';
+    $hasSynced = trim((string)($device['system_seen_at'] ?? '')) !== '';
     $pending = !$hasSynced && in_array((string)($device['driver_status'] ?? ''), ['', 'Belum Sync'], true);
     $active = !empty($device['is_active']);
-    $connections = [
-        dashboard_chip($active ? 'success' : 'danger', 'SNMP'),
-    ];
+    $supported = !empty($device['driver_supported']);
+    $connections = [$supported ? dashboard_chip($active ? 'success' : 'danger', 'SNMP')
+        : dashboard_chip('unknown', 'Tidak didukung', device_access_lock_message())];
 
     return [
         'number' => $number,
@@ -163,9 +167,9 @@ function dashboard_snmp_row(array $device, int $number, array $group): array
         'model' => display_model_chars($device['model'] ?? ''),
         'system_name' => trim((string)($device['system_name'] ?? '')),
         'row_url' => public_page_url((string)$group['page'], ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $pending, false, false, (string)($device['seen_at'] ?? ''), ''),
+        'sync' => dashboard_sync_state($hasSynced, $supported && $pending, false, false, (string)($device['system_seen_at'] ?? ''), ''),
         'connections' => $connections,
-        'scan' => [
+        'scan' => $supported ? [
             'action' => 'sync_snmp_device',
             'field' => 'device_row_id',
             'value' => $id,
@@ -173,7 +177,7 @@ function dashboard_snmp_row(array $device, int $number, array $group): array
             'discovery' => false,
             'device_sync' => true,
             'title' => 'Pindai ' . (string)$group['label'],
-        ],
+        ] : null,
         'edit_url' => public_page_url('dashboard', ['edit_device' => $id]),
         'edit_modal' => true,
         'delete' => dashboard_device_delete_action($id),
@@ -223,7 +227,7 @@ function dashboard_olt_chip(string $status, int $failures): string
     if ($failures === 2) return 'warning';
     if ($failures === 1) return 'neutral';
     if ($status === 'WARN') return 'warning';
-    if ($status === 'OK') return 'success';
+    if (in_array(strtolower($status), ['online', 'ok'], true)) return 'success';
     return 'unknown';
 }
 

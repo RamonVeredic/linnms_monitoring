@@ -43,24 +43,39 @@ function linnms_registration_reply(array $payload, int $status = 200): never
 function linnms_registration_result_message(string $code, int $waitSeconds = 0): string
 {
     return match ($code) {
-        'unavailable' => 'Pendaftaran tidak tersedia.',
+        'unavailable' => toast_message('auth.signup-unavailable'),
         'rate_limited' => 'Terlalu banyak percobaan pendaftaran dari jaringan ini. Coba lagi dalam '
             . (int)ceil(max(1, $waitSeconds) / 60) . ' menit.',
-        'guard_honeypot' => 'Pendaftaran tidak dapat diproses.',
-        'guard_missing' => 'Sesi pendaftaran tidak ditemukan. Muat ulang halaman pendaftaran.',
-        'guard_fast' => 'Formulir terkirim terlalu cepat. Silakan periksa kembali isian Anda.',
-        'guard_expired' => 'Sesi pendaftaran kedaluwarsa. Muat ulang halaman pendaftaran.',
-        'name_required' => 'Nama wajib diisi.',
+        'guard_honeypot' => toast_message('auth.signup-rejected'),
+        'guard_missing' => toast_message('auth.signup-reload'),
+        'guard_fast' => toast_message('auth.form-too-fast'),
+        'guard_expired' => toast_message('auth.signup-expired'),
+        'name_required' => toast_message('auth.name-required'),
         'name_short' => 'Nama minimal 2 karakter.',
         'name_long' => 'Nama maksimal 120 karakter.',
-        'username_invalid' => 'Username tidak dapat digunakan.',
-        'password_weak' => 'Password tidak kuat.',
-        'password_mismatch' => 'Konfirmasi password tidak sesuai.',
-        'phone_invalid' => 'Nomor WhatsApp tidak valid.',
-        'session_incomplete' => 'Sesi pendaftaran tidak lengkap.',
-        'code_invalid' => 'Masukkan ' . linnms_registration_rule('otp_length') . ' angka kode OTP.',
-        default => 'Pendaftaran gagal. Silakan coba lagi.',
+        'username_invalid' => toast_message('auth.username-unavailable'),
+        'password_weak' => toast_message('auth.password-weak'),
+        'password_mismatch' => toast_message('auth.password-mismatch'),
+        'phone_invalid' => toast_message('auth.whatsapp-invalid'),
+        'session_incomplete' => toast_message('auth.signup-incomplete'),
+        'code_invalid' => toast_message('auth.otp-length', ['length' => linnms_registration_rule('otp_length')]),
+        default => toast_message('auth.signup-failed'),
     };
+}
+
+function log_login_result(string $username, string $message, string $level = 'info', string $area = 'Keamanan'): void
+{
+    $agent = strtolower(trim((string)($_SERVER['HTTP_USER_AGENT'] ?? '')));
+    if ($level === 'info'
+        && preg_match('~(?:^|[ /])(?:python-requests|python-urllib|curl|wget|httpie|go-http-client|postmanruntime|insomnia)(?:/|$)~', $agent)) {
+        $level = 'warning';
+        $message = linnms_log_message('warning', 'auth.auto-client', ['message' => $message]);
+    }
+    $actor = current_username() ?: mb_substr($username, 0, 80);
+    $ip = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    $origin = $ip !== '' ? 'IP ' . $ip . ', ' : '';
+    application_log_event(current_user_id() ?: null, $area, 'login', $level,
+        $origin . ($actor !== '' ? $actor : 'Pengguna') . ' ' . $message, [], $actor ?: null);
 }
 
 function handle_auth_action(string $action): bool
@@ -69,11 +84,8 @@ function handle_auth_action(string $action): bool
         'register_otp_cancel', 'register_otp_verify', 'logout'], true)) return false;
 
     if ($action === 'logout') {
-        $GLOBALS['LINNMS_ACTION_LOG'] = [
-            'area' => 'Keamanan',
-            'level' => 'info',
-            'message' => 'berhasil keluar dari aplikasi',
-        ];
+        application_log_event(current_user_id() ?: null, 'Keamanan', 'logout', 'info',
+            linnms_log_message('info', 'auth.logged-out', ['user' => current_username() ?: 'Pengguna']), [], current_username() ?: null);
         logout_user();
     }
 
@@ -82,40 +94,35 @@ function handle_auth_action(string $action): bool
         $password = (string)($_POST['password'] ?? '');
         $_SESSION['old_login_username'] = $username;
         if ($username === '' || $password === '') {
-            $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
-                'message' => 'percobaan login gagal: username atau password belum diisi'];
-            flash('error', 'Username atau password salah');
+            log_login_result($username, linnms_log_message('info', 'auth.login-required'));
+            flash('error', toast_message('auth.credentials-invalid'));
             redirect('?page=login');
         }
         $result = linnms_auth_guest_request($action, ['username' => $username, 'password' => $password]);
         $code = (string)linnms_action_reason($result, 'internal');
         if ($code === 'inactive') {
-            $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
-                'message' => 'percobaan login gagal: akun tidak aktif'];
-            flash('warning', 'Akun Anda sedang dinonaktifkan. Silakan hubungi administrator.');
+            log_login_result($username, linnms_log_message('info', 'auth.login-inactive'));
+            flash('warning', toast_message('auth.account-disabled'));
             redirect('?page=login');
         }
         if (empty($result['ok'])) {
             $rateLimited = $code === 'rate_limited';
             $repeatedFailure = $code === 'repeated_failure';
-            $GLOBALS['LINNMS_ACTION_LOG'] = [
-                'area' => in_array($code, ['invalid_credentials', 'repeated_failure', 'rate_limited'], true) ? 'Keamanan' : 'System',
-                'level' => $rateLimited || $repeatedFailure ? 'warning' : ($code === 'invalid_credentials' ? 'info' : 'critical'),
-                'message' => $rateLimited
-                    ? 'percobaan login dibatasi karena terlalu banyak kegagalan'
-                    : ($repeatedFailure
-                        ? 'percobaan login gagal berulang kali: username atau password salah'
-                        : ($code === 'invalid_credentials'
-                            ? 'percobaan login gagal: username atau password salah'
-                            : 'percobaan login gagal: layanan autentikasi tidak tersedia'))];
-            flash('error', 'Username atau password salah');
+            $message = match ($code) {
+                'rate_limited' => linnms_log_message('warning', 'auth.login-limited'),
+                'repeated_failure' => linnms_log_message('warning', 'auth.login-repeated'),
+                'invalid_credentials' => linnms_log_message('info', 'auth.login-invalid'),
+                default => linnms_log_message('critical', 'auth.login-unavailable'),
+            };
+            $level = $rateLimited || $repeatedFailure ? 'warning' : ($code === 'invalid_credentials' ? 'info' : 'critical');
+            log_login_result($username, $message, $level, $level === 'critical' ? 'System' : 'Keamanan');
+            flash('error', toast_message('auth.credentials-invalid'));
             redirect('?page=login');
         }
         $user = is_array($result['data'] ?? null) ? $result['data'] : [];
         unset($_SESSION['old_login_username']);
         linnms_sign_in_user($user);
-        $GLOBALS['LINNMS_ACTION_LOG'] = ['area' => 'Keamanan', 'level' => 'info',
-            'message' => 'berhasil login'];
+        log_login_result($username, linnms_log_message('info', 'auth.logged-in'));
         redirect('?page=dashboard');
     }
 
@@ -130,7 +137,7 @@ function handle_auth_action(string $action): bool
         $availability = linnms_auth_guest_request('availability');
         if (empty($availability['ok'])) {
             unset($_SESSION['old_register'], $_SESSION['register_pending']);
-            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => 'Pendaftaran tidak tersedia.'], 403);
+            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => toast_message('auth.signup-unavailable')], 403);
             redirect('?page=login');
         }
     }
@@ -150,7 +157,7 @@ function handle_auth_action(string $action): bool
         $code = (string)linnms_action_reason($result, 'internal');
         if ($code === 'unavailable') {
             unset($_SESSION['old_register'], $_SESSION['register_pending']);
-            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => 'Pendaftaran tidak tersedia.'], 403);
+            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => toast_message('auth.signup-unavailable')], 403);
             redirect('?page=login');
         }
         if (!empty($result['ok'])) {
@@ -184,8 +191,8 @@ function handle_auth_action(string $action): bool
     if ($action === 'register_otp_request') {
         $pending = is_array($_SESSION['register_pending'] ?? null) ? $_SESSION['register_pending'] : null;
         if ($pending === null) {
-            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => 'Silahkan lengapi formul.'], 422);
-            flash('warning', 'Silahkan lengapi formulir');
+            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => toast_message('validation.required-fields')], 422);
+            flash('warning', toast_message('validation.required-fields'));
             redirect('?page=register');
         }
         $username = (string)($pending['username'] ?? '');
@@ -214,7 +221,7 @@ function handle_auth_action(string $action): bool
             redirect('?page=register&step=otp');
         }
         if (preg_match('/^62[0-9]{8,15}$/', $normalized) !== 1) {
-            $message = 'Nomor WhatsApp tidak valid.';
+            $message = toast_message('auth.whatsapp-invalid');
             $_SESSION['old_register'] = ['username' => $username, 'display_name' => $displayName, 'phone_number' => $phoneInput];
             $_SESSION['register_validation'] = ['field' => 'phone_number', 'message' => $message];
             if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => $message, 'field' => 'phone_number', 'rate_limited' => false, 'wait_seconds' => 0], 422);
@@ -229,7 +236,7 @@ function handle_auth_action(string $action): bool
         $code = (string)linnms_action_reason($result, 'internal');
         if ($code === 'unavailable') {
             unset($_SESSION['old_register'], $_SESSION['register_pending']);
-            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => 'Pendaftaran tidak tersedia.'], 403);
+            if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => toast_message('auth.signup-unavailable')], 403);
             redirect('?page=login');
         }
         if (!empty($result['ok'])) {
@@ -257,9 +264,9 @@ function handle_auth_action(string $action): bool
         if ($rateLimited && $wait > 0) $_SESSION['register_otp_cooldown'] = ['phone' => $normalized, 'until' => time() + $wait];
         if ($code === 'session_incomplete') unset($_SESSION['register_pending']);
         $_SESSION['old_register'] = ['username' => $username, 'display_name' => $displayName, 'phone_number' => $phoneInput];
-        $message = $code === 'phone_invalid' ? 'Nomor WhatsApp tidak valid.'
+        $message = $code === 'phone_invalid' ? toast_message('auth.whatsapp-invalid')
             : ($rateLimited ? 'Terlalu banyak permintaan kode untuk nomor ini.'
-                : ($code === 'session_incomplete' ? 'Sesi pendaftaran tidak lengkap.' : 'Kode OTP gagal dikirim. Silakan coba lagi.'));
+                : ($code === 'session_incomplete' ? toast_message('auth.signup-incomplete') : toast_message('auth.otp-send-failed')));
         if ($code === 'phone_invalid') $_SESSION['register_validation'] = ['field' => 'phone_number', 'message' => $message];
         if (linnms_registration_async_request()) linnms_registration_reply([
             'ok' => false, 'message' => $message, 'field' => $code === 'phone_invalid' ? 'phone_number' : '',
@@ -272,9 +279,9 @@ function handle_auth_action(string $action): bool
     $pending = is_array($_SESSION['register_pending'] ?? null) ? $_SESSION['register_pending'] : null;
     if ($pending === null) {
         if (linnms_registration_async_request()) linnms_registration_reply([
-            'ok' => false, 'message' => 'Sesi pendaftaran tidak ditemukan.', 'step' => 'form',
+            'ok' => false, 'message' => toast_message('auth.signup-session-missing'), 'step' => 'form',
         ], 422);
-        flash('warning', 'Sesi pendaftaran tidak ditemukan. Isi kembali formulir pendaftaran.');
+        flash('warning', toast_message('auth.signup-restart'));
         redirect('?page=register');
     }
     $codeInput = trim((string)($_POST['otp_code'] ?? ''));
@@ -296,7 +303,7 @@ function handle_auth_action(string $action): bool
     $code = (string)linnms_action_reason($result, 'internal');
     if ($code === 'unavailable') {
         unset($_SESSION['old_register'], $_SESSION['register_pending']);
-        if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => 'Pendaftaran tidak tersedia.'], 403);
+        if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => toast_message('auth.signup-unavailable')], 403);
         redirect('?page=login');
     }
     if (!empty($result['ok'])) {
@@ -305,9 +312,9 @@ function handle_auth_action(string $action): bool
         if (linnms_registration_async_request()) linnms_registration_reply(['ok' => true, 'redirect' => public_page_url('login')]);
         redirect('?page=login');
     }
-    $message = $code === 'username_invalid' ? 'Username tidak dapat digunakan.'
+    $message = $code === 'username_invalid' ? toast_message('auth.username-unavailable')
         : ($code === 'code_invalid' ? linnms_registration_result_message('code_invalid')
-            : 'Pendaftaran gagal. Silakan coba lagi.');
+            : toast_message('auth.signup-failed'));
     if ($code === 'username_invalid') {
         $_SESSION['old_register'] = [
             'username' => (string)($pending['username'] ?? ''),

@@ -9,7 +9,7 @@ unset($timezone);
 foreach ([
     'request', 'auth-session', 'routes', 'drivers', 'device-access',
     'olt-api', 'activity', 'display', 'dates', 'phone', 'olt-snapshot',
-    'device-edit', 'device-add', 'validation',
+    'device-edit', 'device-add', 'validation', 'toast-message',
 ] as $helper) {
     require_once __DIR__ . '/helpers/' . $helper . '.php';
 }

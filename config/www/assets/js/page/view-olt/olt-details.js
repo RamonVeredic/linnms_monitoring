@@ -226,14 +226,14 @@
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload || payload.ok !== true) {
-        throw new Error(payload?.message || 'Data PON belum tersedia.');
+        throw new Error(payload?.message || window.linnmsToastMessage("js.olt.pon-unavailable"));
       }
 
       const card = form.closest('.olt-pon-card');
       if (card && payload.port) {
         card.replaceWith(renderPort(payload.port, true));
       }
-      setStatus(payload.message || 'PON berhasil diperbarui dan diverifikasi.', 'ok');
+      setStatus(payload.message || window.linnmsToastMessage("js.olt.pon-verified"), 'ok');
     } catch (error) {
       setStatus('Perubahan PON belum berhasil disimpan.', 'error');
       if (save) save.disabled = false;
@@ -572,11 +572,11 @@
         );
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload || payload.ok !== true) {
-          throw new Error(payload?.message || 'Data OLT belum dapat diperbarui.');
+          throw new Error(payload?.message || window.linnmsToastMessage("js.olt.update-failed"));
         }
 
         const warnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
-        setStatus(warnings.length ? warnings.join(' ') : (payload.message || 'Data OLT diperbarui.'));
+        setStatus(warnings.length ? warnings.join(' ') : (payload.message || window.linnmsToastMessage("olt.updated")));
 
 
 
@@ -586,7 +586,7 @@
         window.location.replace(url.toString());
       } catch (error) {
         setBusy(false);
-        setStatus(error instanceof Error ? error.message : 'Data OLT belum dapat diperbarui.');
+        setStatus(error instanceof Error ? error.message : window.linnmsToastMessage("js.olt.update-failed"));
       }
     });
   });
@@ -601,7 +601,7 @@ document.addEventListener('change', async (event) => {
   };
   if (toggle.dataset.ponFlowControlKnown !== '1') {
     toggle.checked = false;
-    notify('warning', 'Status Flow Control belum tersedia. Perubahan tidak dikirim.');
+    notify('warning', window.linnmsToastMessage("js.olt.flow-unavailable"));
     return;
   }
   const rowId = toggle.dataset.oltRowId || '';
@@ -612,7 +612,7 @@ document.addEventListener('change', async (event) => {
   const previous = !toggle.checked;
   if (!rowId || !pon || !csrf) {
     toggle.checked = previous;
-    notify('error', 'Data PON tidak lengkap.');
+    notify('error', window.linnmsToastMessage("js.olt.pon-incomplete"));
     return;
   }
   toggle.disabled = true;
@@ -625,13 +625,13 @@ document.addEventListener('change', async (event) => {
       body: body.toString(),
     });
     const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload || payload.ok !== true) throw new Error(payload?.message || 'Flow Control gagal disimpan.');
+    if (!response.ok || !payload || payload.ok !== true) throw new Error(payload?.message || window.linnmsToastMessage("live.flow-control-failed"));
     const label = toggle.closest('label')?.querySelector('[data-pon-flow-control-label]');
     if (label) label.textContent = value;
-    notify('success', payload.message || 'Flow Control tersimpan.');
+    notify('success', payload.message || window.linnmsToastMessage("live.flow-control-saved"));
   } catch (error) {
     toggle.checked = previous;
-    notify('error', error instanceof Error ? error.message : 'Flow Control gagal disimpan.');
+    notify('error', error instanceof Error ? error.message : window.linnmsToastMessage("live.flow-control-failed"));
   } finally {
     toggle.disabled = false;
   }
@@ -642,7 +642,7 @@ document.addEventListener('change', (event) => {
   if (!toggle) return;
   toggle.checked = !toggle.checked;
   if (typeof window.linnmsNotify === 'function') {
-    window.linnmsNotify('warning', (toggle.dataset.ponUnsupportedToggle || 'Konfigurasi PON') + ' belum didukung untuk perangkat ini.');
+    window.linnmsNotify('warning', window.linnmsToastMessage("js.olt.option-unsupported", {field: toggle.dataset.ponUnsupportedToggle || 'Konfigurasi PON'}));
   }
 });
 
@@ -675,7 +675,7 @@ document.addEventListener('change', (event) => {
   window.linnmsAjax.request(liveUrl + '?type=olt-pon-status-save', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'fetch'}, body: body.toString() })
     .then((response) => response.json().then((payload) => ({ response, payload })))
     .then(({ response, payload }) => {
-      if (!response.ok || !payload || payload.ok !== true) throw new Error((payload && payload.message) || 'Status PON gagal diubah.');
+      if (!response.ok || !payload || payload.ok !== true) throw new Error((payload && payload.message) || window.linnmsToastMessage("live.pon-state-failed"));
       if (hidden) hidden.value = value;
       if (label) label.textContent = value;
       if (ponCard) {
@@ -698,7 +698,7 @@ document.addEventListener('change', (event) => {
     })
     .catch((error) => {
       toggle.checked = value === 'Disable';
-      notify('error', String((error && error.message) || 'Status PON gagal diubah.'));
+      notify('error', String((error && error.message) || window.linnmsToastMessage("live.pon-state-failed")));
     })
     .finally(() => { toggle.disabled = false; });
 });
@@ -822,7 +822,7 @@ document.addEventListener('change', (event) => {
       setStatus('Terhubung', false, true);
       terminal.focus();
       schedule(state);
-    } catch (error) { stop(state, error.message || 'Terminal belum dapat dibuka.'); }
+    } catch (error) { stop(state, error.message || window.linnmsToastMessage("js.olt.terminal-failed")); }
   };
   document.querySelectorAll('[data-olt-terminal-open]').forEach((button) => button.addEventListener('click', () => open(button)));
   dialog.querySelector('[data-olt-terminal-close]').addEventListener('click', () => dialog.close());
@@ -1224,7 +1224,7 @@ document.addEventListener('change', (event) => {
     });
     const response = await window.linnmsAjax.request((document.body.dataset.liveUrl || 'live.php') + '?type=olt-uplink-save', {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'fetch'},body:body.toString()});
     const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Perubahan belum berhasil disimpan.');
+    if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsToastMessage("js.toggle.save-failed"));
     if (payload.detail && typeof payload.detail === 'object') portData[ref] = Object.assign({}, portData[ref] || {}, payload.detail);
     if (typeof window.linnmsNotify === 'function') window.linnmsNotify('success', payload.message);
     return payload;
@@ -1316,7 +1316,7 @@ document.addEventListener('change', (event) => {
           const body = new URLSearchParams({ csrf: modal.querySelector('input[name="csrf"]').value, olt_row_id: rowId, kind, name });
           const response = await window.linnmsAjax.request(liveUrl + '?type=olt-profile-delete', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'fetch' }, body: body.toString() });
           const payload = await response.json().catch(() => null);
-          if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Profil belum berhasil dihapus.');
+          if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsToastMessage("olt.profile-delete-failed"));
           notify('success', payload.message);
           window.setTimeout(() => window.location.reload(), 400);
         } catch (error) {
@@ -1341,7 +1341,7 @@ document.addEventListener('change', (event) => {
       });
       const response = await window.linnmsAjax.request(liveUrl + '?type=olt-profile-save', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'fetch' }, body: body.toString() });
       const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.ok) throw new Error(payload?.message || 'Profil belum berhasil disimpan.');
+      if (!response.ok || !payload?.ok) throw new Error(payload?.message || window.linnmsToastMessage("olt.profile-save-failed"));
       notify('success', payload.message);
       close();
       window.setTimeout(() => window.location.reload(), 400);

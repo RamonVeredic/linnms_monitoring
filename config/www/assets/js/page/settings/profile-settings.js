@@ -26,13 +26,13 @@
         });
         const payload = await response.json();
         if (!response.ok || payload.ok !== true) {
-          throw new Error('Gagal mengaktifkan perangkat.');
+          throw new Error(window.linnmsToastMessage("settings.device-enable-failed"));
         }
         editableToggles.forEach((control) => { control.defaultChecked = control.checked; });
         window.linnmsNotify?.('success', payload.message);
       } catch (error) {
         editableToggles.forEach((control) => { control.checked = control.defaultChecked; });
-        window.linnmsNotify?.('error', 'Gagal mengaktifkan perangkat.');
+        window.linnmsNotify?.('error', window.linnmsToastMessage("settings.device-enable-failed"));
       } finally {
         saving = false;
         driverForm.removeAttribute('aria-busy');

@@ -89,10 +89,10 @@
         body: body.toString(),
       });
       const result = await response.json();
-      if (!response.ok || result?.ok !== true) throw new Error(result?.message || 'SSID gagal disimpan.');
+      if (!response.ok || result?.ok !== true) throw new Error(result?.message || window.linnmsToastMessage("live.ssid-save-failed"));
       if (typeof window.linnmsNotify === 'function') window.linnmsNotify('success', result.message);
     } catch (error) {
-      if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', error.message || 'SSID gagal disimpan.');
+      if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', error.message || window.linnmsToastMessage("live.ssid-save-failed"));
     } finally {
       button.disabled = false;
     }
@@ -483,12 +483,12 @@
       url.searchParams.set('onu_row_id', onuRowId);
       url.searchParams.set('port', String(port));
       const response = await window.linnmsAjax.request(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
-      if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Respons data port LAN tidak valid. Muat ulang halaman.');
+      if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(window.linnmsToastMessage("js.onu.lan-response-invalid"));
       const result = await response.json();
-      if (!response.ok || result?.ok !== true || !result.detail) throw new Error(result?.message || 'Data port LAN belum tersedia.');
+      if (!response.ok || result?.ok !== true || !result.detail) throw new Error(result?.message || window.linnmsToastMessage("js.onu.lan-unavailable"));
       if (token === requestId && !modal.hidden) render(result.detail);
     } catch (error) {
-      if (token === requestId && !modal.hidden) showMessage(error.message || 'Data port LAN belum tersedia.');
+      if (token === requestId && !modal.hidden) showMessage(error.message || window.linnmsToastMessage("js.onu.lan-unavailable"));
     }
   };
   const openPort = (button) => {
@@ -516,7 +516,7 @@
     currentOpener?.focus();
   };
   const send = async (action, field, value) => {
-    if (!csrf || !onuRowId || saving) throw new Error('Pengaturan port LAN belum dapat disimpan.');
+    if (!csrf || !onuRowId || saving) throw new Error(window.linnmsToastMessage("live.lan-save-failed"));
     saving = true;
     const controls = Array.from(detailBody.querySelectorAll('input, select, button'));
     const disabled = controls.map((control) => control.disabled);
@@ -529,10 +529,10 @@
         body: body.toString(),
       });
       const result = await response.json();
-      if (!response.ok || result?.ok !== true) throw new Error(result?.message || 'Pengaturan port LAN gagal.');
+      if (!response.ok || result?.ok !== true) throw new Error(result?.message || window.linnmsToastMessage("live.lan-save-failed"));
       notify(result.refreshed === false ? 'warning' : 'success', result.refreshed === false
         ? 'Perintah diterima, tetapi snapshot port LAN belum dapat diperbarui.'
-        : (result.message || 'Pengaturan port LAN berhasil.'));
+        : (result.message || window.linnmsToastMessage("live.lan-saved")));
       if (field === 'settings') {
         const settings = JSON.parse(value);
         const [mode, defaultVlan, vlanList] = settings.vlan.split(':');
@@ -576,7 +576,7 @@
         await send(toggle.dataset.onuLanAction, toggle.dataset.onuLanKey, value);
         if (currentDetail) render(currentDetail);
       } catch (error) {
-        notify('error', error.message || 'Pengaturan port LAN gagal.');
+        notify('error', error.message || window.linnmsToastMessage("live.lan-save-failed"));
         if (currentDetail) render(currentDetail);
       }
     } else if (toggle instanceof HTMLInputElement && toggle.hasAttribute('data-onu-lan-preview')) {
@@ -598,13 +598,13 @@
     const dhcp = form.elements.namedItem('dhcp')?.value || '';
     if (!mode || !dhcp || (['access', 'hybrid'].includes(mode) && !vlanDefault)
       || (['trunk', 'hybrid'].includes(mode) && !vlans)) {
-      notify('error', 'Lengkapi pengaturan port LAN.');
+      notify('error', window.linnmsToastMessage("js.onu.lan-required"));
       return;
     }
     try {
       await send(currentDetail.save_action, 'settings', JSON.stringify({ vlan: [mode, vlanDefault, vlans].join(':'), dhcp }));
     } catch (error) {
-      notify('error', error.message || 'Pengaturan port LAN gagal.');
+      notify('error', error.message || window.linnmsToastMessage("live.lan-save-failed"));
       if (currentDetail) render(currentDetail);
     }
   });
@@ -706,7 +706,7 @@
     const response = await window.linnmsAjax.request(liveUrl + '?type=' + type, { method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'fetch' }, body: data.toString() });
     const result = await response.json();
-    if (!response.ok || result?.ok !== true) throw Error(result?.message || 'Pengaturan gagal disimpan.');
+    if (!response.ok || result?.ok !== true) throw Error(result?.message || window.linnmsToastMessage("js.onu.save-failed"));
     return result;
   };
   const actions = (panel, entry, kind, id) => {
@@ -927,15 +927,15 @@
       body: data.toString(),
     });
     const result = await response.json();
-    if (!response.ok || result?.ok !== true) throw new Error(result?.message || 'Perubahan Service belum berhasil.');
+    if (!response.ok || result?.ok !== true) throw new Error(result?.message || window.linnmsToastMessage("js.onu.service-save-failed"));
     if (result.refreshed === true) window.location.reload();
-    else notify('warning', result.message || 'Perintah diterima, tetapi snapshot Service belum tersimpan.');
+    else notify('warning', result.message || window.linnmsToastMessage("js.onu.snapshot-failed"));
     return result;
   };
   panel.addEventListener('change', async (event) => {
     const toggle = event.target.closest('[data-onu-service-toggle]');
     if (!toggle) return;
-    if (!csrf || !onuRowId) { toggle.checked = !toggle.checked; notify('error', 'Sesi atau identitas ONU tidak tersedia.'); return; }
+    if (!csrf || !onuRowId) { toggle.checked = !toggle.checked; notify('error', window.linnmsToastMessage("js.onu.session-invalid")); return; }
     const index = Number(toggle.dataset.onuServiceIndex);
     const enabled = toggle.checked;
     if (!Number.isInteger(index) || index < 1) { toggle.checked = !enabled; return; }
@@ -954,7 +954,7 @@
     } catch (error) {
       toggle.checked = !enabled;
       if (status) status.textContent = oldStatus;
-      notify('error', error.message || 'Perubahan Service belum berhasil.');
+      notify('error', error.message || window.linnmsToastMessage("js.onu.service-save-failed"));
     } finally {
       toggle.disabled = false;
     }
@@ -970,7 +970,7 @@
       modal.querySelector('[data-onu-modal-close]')?.click();
       submit.disabled = false;
     } catch (error) {
-      notify('error', error.message || 'Konfigurasi awal Service belum berhasil.');
+      notify('error', error.message || window.linnmsToastMessage("js.onu.service-setup-failed"));
       submit.disabled = false;
     }
   });

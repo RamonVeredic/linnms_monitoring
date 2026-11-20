@@ -4,32 +4,32 @@ declare(strict_types=1);
 
 function validation_required_message(string $field): string
 {
-    return trim($field) . ' harus diisi.';
+    return toast_message('validation.required', ['field' => trim($field)]);
 }
 
 function validation_port_message(): string
 {
-    return 'Periksa port (1-65535), Community (SNMP), Port Telnet, Username, dan Password.';
+    return toast_message('validation.port');
 }
 
 function validation_ip_message(): string
 {
-    return 'Periksa IP Anda.';
+    return toast_message('validation.ip');
 }
 
 function device_connection_message(string $kind): string
 {
     return match (trim($kind)) {
-        'snmp' => 'SNMP tidak merespons. Pastikan alamat IP, port SNMP, dan community sudah benar.',
-        'telnet' => 'Telnet tidak merespons. Pastikan port Telnet, username, dan password sudah benar.',
-        'api' => 'Koneksi OLT External API gagal. Periksa pengaturan layanan.',
-        default => 'Perangkat tidak dapat dijangkau.',
+        'snmp' => toast_message('validation.snmp'),
+        'telnet' => toast_message('validation.telnet'),
+        'api' => toast_message('validation.api'),
+        default => toast_message('device.unreachable'),
     };
 }
 
 function validation_invalid_message(string $field): string
 {
-    return trim($field) . ' tidak valid.';
+    return toast_message('validation.invalid', ['field' => trim($field)]);
 }
 
 function registration_sanitize_display_name(mixed $name): string

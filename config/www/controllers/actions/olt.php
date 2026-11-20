@@ -6,7 +6,7 @@ require_once LINNMS_UI_ROOT . '/app/internal-api-client.php';
 
 function handle_olt_action(string $action): bool
 {
-    $actions = ['approve_api_olt_first_scan', 'add_olt', 'sync_snmp_olt',
+    $actions = ['add_olt', 'sync_snmp_olt',
         'update_snmp_olt_port_description', 'save_olt_pon_description_local',
         'save_olt_card_label', 'refresh_olt', 'refresh_olt_view', 'scan_snmp_olt',
         'save_olt_pon_port_config', 'save_olt_pon_modal', 'save_olt_cli_connection',
@@ -19,7 +19,7 @@ function handle_olt_action(string $action): bool
         if (is_array($definition) && ($definition['handler'] ?? '') !== 'snmp_olt') return false;
     }
     if (!is_logged_in()) redirect('?page=login');
-    if (in_array($action, ['approve_api_olt_first_scan', 'save_olt_card_label'], true)) require_admin_role();
+    if (in_array($action, ['save_olt_card_label'], true)) require_admin_role();
 
     $rowId = valid_positive_id($_POST['olt_row_id'] ?? null) ?? 0;
     $onuRowId = valid_positive_id($_POST['onu_row_id'] ?? null) ?? 0;
@@ -71,7 +71,7 @@ function handle_olt_action(string $action): bool
     if ($action === 'add_olt') {
         if ($ok) {
             unset($_SESSION['old_olt']);
-            flash('success', 'OLT berhasil ditambahkan.');
+            flash('success', toast_message('olt.added'));
             redirect('?page=dashboard');
         }
         $old = $_POST;
@@ -84,43 +84,34 @@ function handle_olt_action(string $action): bool
             'port_invalid' => validation_port_message(),
             'username_required' => validation_required_message('Username'),
             'password_required' => validation_required_message('Password'),
-            'driver_invalid' => 'Driver OLT SNMP belum didukung.',
-            'driver_disabled' => 'Driver OLT ini tidak diizinkan atau sedang dinonaktifkan.',
-            'quota_total' => 'Batas OLT keseluruhan telah tercapai.',
-            'quota_user' => 'Batas OLT akun telah tercapai.',
-            default => linnms_action_code_message($result, 'OLT gagal ditambahkan.'),
+            'driver_invalid' => toast_message('olt.driver-unsupported'),
+            'driver_disabled' => toast_message('olt.driver-disabled'),
+            'quota_total' => toast_message('olt.total-limit'),
+            'quota_user' => toast_message('olt.user-limit'),
+            default => linnms_action_code_message($result, toast_message('olt.add-failed')),
         };
         flash('error', $message);
         redirect('?page=dashboard&add_device=1');
     }
 
-    if ($action === 'approve_api_olt_first_scan') {
-        flash($ok ? 'success' : 'error', $ok
-            ? 'Scan pertama OLT ' . display_text($payload['name'] ?? null, (string)($payload['olt_id'] ?? ''))
-                . ' milik @' . (string)($payload['username'] ?? '-') . ' telah disetujui.'
-            : ($code === 'olt_invalid' ? 'Permintaan scan OLT tidak valid.'
-                : 'Permintaan scan pertama tidak ditemukan atau sudah diproses.'));
-        redirect('?page=dashboard');
-    }
-
     if ($action === 'scan_snmp_olt') {
         $message = $code === 'queued' ? 'Fast, Middle, dan Low Sync OLT masuk antrean.'
-            : ($code === 'running' ? 'Sinkronisasi OLT masih berjalan.' : 'Sinkronisasi OLT gagal dijalankan.');
+            : ($code === 'running' ? toast_message('olt.sync-running') : toast_message('olt.sync-start-failed'));
         flash($ok ? 'success' : 'error', $message);
         redirect('?page=dashboard');
     }
 
     if ($action === 'save_olt_card_label') {
         $label = trim((string)($_POST['card_label'] ?? ''));
-        $message = $ok ? ($label === '' ? 'Nama kartu dihapus.' : 'Nama kartu disimpan.')
-            : 'Nama kartu gagal disimpan.';
+        $message = $ok ? ($label === '' ? toast_message('olt.card-label-deleted') : toast_message('olt.card-label-saved'))
+            : toast_message('olt.card-label-failed');
         flash($ok ? 'success' : 'error', $message);
         redirect($destination);
     }
 
     if ($action === 'save_olt_cli_connection') {
-        $message = $ok ? ($code === 'enabled' ? 'Telnet diaktifkan.' : 'Telnet dimatikan.')
-            : 'Pengaturan Telnet gagal disimpan.';
+        $message = $ok ? ($code === 'enabled' ? toast_message('olt.telnet-enabled') : toast_message('olt.telnet-disabled'))
+            : toast_message('olt.telnet-save-failed');
         flash($ok ? 'success' : 'error', $message);
         redirect($destination);
     }
@@ -131,12 +122,12 @@ function handle_olt_action(string $action): bool
         $label = (string)($fields[$fieldName]['label'] ?? 'Konfigurasi');
         $number = (int)($payload['number'] ?? $pon);
         $message = match ($code) {
-            'ok' => $label . ' PON ' . $number . ' tersimpan.',
-            'unchanged' => $label . ' tidak berubah.',
-            'config_empty' => 'Pilih nilai konfigurasi PON yang ingin disimpan.',
-            'config_invalid' => 'Nilai konfigurasi PON tidak sesuai pilihan.',
-            'unsupported' => 'Perubahan ' . $label . ' PON ' . $number . ' tidak dapat diterapkan untuk perangkat ini.',
-            default => linnms_action_code_message($result, 'Perubahan ' . $label . ' PON ' . $number . ' gagal disimpan.'),
+            'ok' => toast_message('olt.pon.saved', ['field' => $label, 'number' => $number]),
+            'unchanged' => toast_message('olt.pon.unchanged', ['field' => $label]),
+            'config_empty' => toast_message('olt.pon-value-required'),
+            'config_invalid' => toast_message('olt.pon-value-invalid'),
+            'unsupported' => toast_message('olt.pon.unsupported', ['field' => $label, 'number' => $number]),
+            default => linnms_action_code_message($result, toast_message('olt.pon.save-failed', ['field' => $label, 'number' => $number])),
         };
         flash($ok ? ($code === 'unchanged' ? 'info' : 'success')
             : (in_array($code, ['config_empty', 'config_invalid', 'unsupported'], true) ? 'warning' : 'error'), $message);
@@ -145,49 +136,53 @@ function handle_olt_action(string $action): bool
 
     if ($action === 'save_olt_vlan_members') {
         $count = (int)($payload['applied'] ?? 0);
-        $message = $ok ? ($code === 'unchanged' ? 'Keanggotaan VLAN tidak berubah.'
-            : $count . ' perubahan keanggotaan VLAN berhasil diterapkan.')
-            : ($code === 'partial' ? $count . ' perubahan diterapkan; sisanya gagal.'
-                : 'Perubahan keanggotaan VLAN gagal diterapkan.');
+        $message = $ok ? ($code === 'unchanged' ? toast_message('olt.vlan-unchanged')
+            : toast_message('olt.vlan.membership-applied', ['count' => $count]))
+            : ($code === 'partial' ? toast_message('olt.vlan.membership-partial', ['count' => $count])
+                : toast_message('olt.vlan-members-failed'));
         flash($ok ? 'success' : ($code === 'partial' ? 'warning' : 'error'), $message);
         redirect($destination);
     }
 
     $message = match ($action) {
-        'sync_snmp_olt' => $ok ? 'Sinkronisasi OLT berhasil dijalankan.' : 'Sinkronisasi OLT gagal dijalankan.',
-        'update_snmp_olt_port_description' => $ok ? 'Keterangan PON tersimpan.' : 'Keterangan PON gagal disimpan.',
+        'sync_snmp_olt' => $ok ? toast_message('olt.sync-started') : toast_message('olt.sync-start-failed'),
+        'update_snmp_olt_port_description' => $ok ? toast_message('olt.pon-label-saved') : toast_message('olt.pon-label-failed'),
         'save_olt_pon_description_local' => $ok
             ? (trim((string)($_POST['olt_port_description'] ?? '')) === ''
-                ? 'Keterangan PON ' . $pon . ' dihapus.'
-                : 'Keterangan PON ' . $pon . ' "' . trim((string)$_POST['olt_port_description']) . '" tersimpan.')
-            : 'Keterangan PON gagal disimpan.',
-        'refresh_olt' => $ok ? 'Data detail OLT diperbarui.' : 'Data detail OLT gagal diperbarui.',
+                ? toast_message('olt.pon.description-deleted', ['number' => $pon])
+                : toast_message('olt.pon.description-saved', ['number' => $pon, 'description' => trim((string)$_POST['olt_port_description'])]))
+            : toast_message('olt.pon-label-failed'),
+        'refresh_olt' => $ok ? toast_message('olt.detail-updated') : toast_message('olt.detail-update-failed'),
         'refresh_olt_view' => $ok
             ? match ($code) {
-                'partial' => 'Data OLT diperbarui sebagian.',
-                'scanning' => 'Pemindaian OLT API sedang berjalan.',
-                default => 'Data OLT diperbarui.',
-            } : 'Data OLT gagal diperbarui.',
+                'partial' => toast_message('olt.partial'),
+                'scanning' => toast_message('olt.api-scanning'),
+                default => toast_message('olt.updated'),
+            } : toast_message('olt.update-failed'),
         'save_olt_pon_modal' => $ok
-            ? (!empty($payload['changed']) ? 'Konfigurasi PON tersimpan.' : 'Tidak ada perubahan konfigurasi PON.')
-            : ($code === 'partial' ? 'Konfigurasi PON tersimpan sebagian.' : 'Konfigurasi PON gagal disimpan.'),
-        'test_olt_cli_connection' => $ok ? 'Uji koneksi CLI berhasil.'
-            : 'Uji koneksi CLI gagal. ' . device_connection_message('telnet'),
-        'refresh_olt_cli_optical' => $ok ? 'Pembacaan daya optik berhasil.' : 'Pembacaan daya optik gagal.',
+            ? (!empty($payload['changed']) ? toast_message('olt.pon-saved') : toast_message('olt.pon-unchanged'))
+            : ($code === 'partial' ? toast_message('olt.pon-partial') : toast_message('olt.pon-save-failed')),
+        'test_olt_cli_connection' => $ok ? toast_message('olt.cli-test-ok')
+            : ($code === 'device_auth_failed' ? toast_message('olt.cli-auth-failed')
+                : toast_message('olt.cli-test-failed') . device_connection_message('telnet')),
+        'refresh_olt_cli_optical' => $ok ? toast_message('olt.optical-read') : toast_message('olt.optical-failed'),
         'refresh_onu_cli_optical' => $ok
-            ? 'Daya optik ONU berhasil dibaca (RX ' . onu_rx_power_display($payload['rx_power'] ?? null)
-                . ' / TX ' . format_power($payload['tx_power'] ?? null) . ').'
-            : 'Daya optik ONU gagal dibaca.',
-        'save_olt_profile' => $ok ? 'Profil berhasil disimpan.' : 'Profil gagal disimpan.',
-        'delete_olt_profile' => $ok ? 'Profil berhasil dihapus.' : 'Profil gagal dihapus.',
-        'save_olt_vlan_port' => $ok ? 'Konfigurasi VLAN berhasil diterapkan.' : 'Konfigurasi VLAN gagal diterapkan.',
-        default => linnms_action_code_message($result, 'Aksi OLT belum tersedia.'),
+            ? toast_message('olt.optical.read', [
+                'rx' => onu_rx_power_display($payload['rx_power'] ?? null),
+                'tx' => format_power($payload['tx_power'] ?? null),
+            ])
+            : toast_message('olt.onu-optical-failed'),
+        'save_olt_profile' => $ok ? toast_message('olt.profile-saved') : toast_message('olt.profile-save-failed'),
+        'delete_olt_profile' => $ok ? toast_message('olt.profile-deleted') : toast_message('olt.profile-delete-failed'),
+        'save_olt_vlan_port' => $ok ? toast_message('olt.vlan-applied') : toast_message('olt.vlan-failed'),
+        default => linnms_action_code_message($result, toast_message('olt.action-unavailable')),
     };
-    if ($code === 'olt_invalid') $message = 'OLT tidak valid.';
-    if ($code === 'olt_not_found') $message = 'OLT tidak ditemukan.';
-    if ($code === 'driver_disabled') $message = 'Driver OLT ini tidak diizinkan atau sedang dinonaktifkan.';
-    if ($code === 'pon_invalid') $message = 'Data PON tidak valid.';
-    if ($code === 'onu_invalid') $message = 'ONU tidak valid.';
+    if ($code === 'scan_not_ready') $message = toast_message('api-olt.scan-wait', ['minutes' => max(1, (int)ceil((int)($payload['retry_after'] ?? 0) / 60))]);
+    if ($code === 'olt_invalid') $message = toast_message('olt.invalid');
+    if ($code === 'olt_not_found') $message = toast_message('olt.not-found');
+    if ($code === 'driver_disabled') $message = toast_message('olt.driver-disabled');
+    if ($code === 'pon_invalid') $message = toast_message('olt.pon-invalid');
+    if ($code === 'onu_invalid') $message = toast_message('onu.invalid');
     if ($action === 'update_snmp_olt_port_description' && !$ok && $rowId > 0) {
         $destination = '?page=view-olt&id=' . $rowId;
     }

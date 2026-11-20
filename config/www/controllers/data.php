@@ -125,10 +125,10 @@ function whatsapp_fields_read_result(int $userId, string $provider): array
         $result = internal_api_request($userId, 'whatsapp.fields.read', ['provider' => $provider]);
     } catch (Throwable $error) {
         error_log('[LINNMS] WhatsApp fields API: ' . $error->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data gateway tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => toast_message('data.gateway-failed')]];
     }
     if (empty($result['ok'])) {
-        return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Gateway tidak dikenal.']];
+        return ['status' => 422, 'payload' => ['ok' => false, 'message' => toast_message('whatsapp.gateway-invalid')]];
     }
     $data = is_array($result['data'] ?? null) ? $result['data'] : [];
     $whatsappDefinition = is_array($data['definition'] ?? null) ? $data['definition'] : [];
@@ -153,7 +153,7 @@ function dashboard_detail_result(int $userId, array $query): array
     try {
         $category = trim((string)($query['category'] ?? ''));
         $detailRead = internal_api_request($userId, 'dashboard.detail.read', $query);
-        if (empty($detailRead['ok'])) return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Kategori dashboard tidak dikenal.']];
+        if (empty($detailRead['ok'])) return ['status' => 422, 'payload' => ['ok' => false, 'message' => toast_message('data.category-invalid')]];
         $detailData = is_array($detailRead['data'] ?? null) ? $detailRead['data'] : [];
         $categoryMeta = [
             'total_devices' => ['kind' => 'device'],
@@ -168,7 +168,7 @@ function dashboard_detail_result(int $userId, array $query): array
             'problem_onus' => ['kind' => 'onu'],
         ];
         if (!isset($categoryMeta[$category])) {
-            return ['status' => 422, 'payload' => ['ok' => false, 'message' => 'Kategori dashboard tidak dikenal.']];
+            return ['status' => 422, 'payload' => ['ok' => false, 'message' => toast_message('data.category-invalid')]];
         }
         $detailKind = (string)$categoryMeta[$category]['kind'];
 
@@ -217,8 +217,6 @@ function dashboard_detail_result(int $userId, array $query): array
         };
 
         if ($detailKind === 'device') {
-            $apiOltFlags = (array)($detailData['api_olt_flags'] ?? []);
-            $driverFlags = (array)($detailData['driver_flags'] ?? []);
             $apiKeyOn = !empty($detailData['api_key_on']);
 
             $deviceGroups = [
@@ -232,19 +230,20 @@ function dashboard_detail_result(int $userId, array $query): array
                         $isSnmpDriver = monitoring_row_uses_handler($device, 'snmp_olt');
                         $driverId = olt_monitoring_driver($device);
                         $isApiDriver = $driverId === 'external_olt_api';
-                        $driverEnabled = $isApiDriver
-                            ? (!empty($apiKeyOn) && api_olt_type_support_enabled($apiOltFlags, (string)($device['type'] ?? '')))
-                            : ($driverId !== '' && olt_driver_support_enabled($driverFlags, $driverId));
+                        $driverSupported = !empty($device['driver_supported']);
+                        $driverEnabled = $driverSupported && (!$isApiDriver || $apiKeyOn);
                         $driverStatus = (string)($device['driver_status'] ?? '');
+                        $apiWaiting = $isApiDriver && (int)($device['api_scan_wait_seconds'] ?? 0) > 0;
                         $isActive = $driverEnabled
-                            && ($isSnmpDriver ? $driverStatus === 'OK' : !empty($device['first_scan_started_at']));
+                            && ($isSnmpDriver ? in_array(strtolower($driverStatus), ['online', 'ok'], true) : $isApiDriver && !$apiWaiting && (int)($device['total_onus'] ?? 0) > 0);
                         $statusLabel = !$driverEnabled
-                            ? 'Tidak tersedia'
+                            ? ($driverSupported ? 'Tidak tersedia' : 'Tidak didukung')
                             : ($isActive
                                 ? 'Aktif'
                                 : ($driverStatus === 'DOWN'
                                     ? 'Tidak terjangkau'
-                                    : ($driverStatus === 'ERROR' ? 'Perlu perhatian' : 'Belum aktif')));
+                                    : ($driverStatus === 'ERROR' ? 'Perlu perhatian'
+                                        : ($apiWaiting ? 'Belum bisa dipindai' : ($isApiDriver ? 'Siap dipindai' : 'Belum aktif')))));
                         $port = (int)($device['snmp_port'] ?? 0);
                         $address = display_text($device['ip_address'] ?? null);
                         if ($address !== 'N/A' && $port > 0) $address .= ':' . $port;
@@ -253,7 +252,8 @@ function dashboard_detail_result(int $userId, array $query): array
                         if ($model === '') $model = trim((string)($snapshot['model'] ?? ''));
                         $info = (int)($device['total_onus'] ?? 0) . ' ONU';
                     } else {
-                        $statusLabel = (string)($device['driver_status'] ?? '') === 'online' ? 'Aktif' : 'Perlu perhatian';
+                        $statusLabel = empty($device['driver_supported']) ? 'Tidak didukung'
+                            : ((string)($device['driver_status'] ?? '') === 'online' ? 'Aktif' : 'Perlu perhatian');
                         $isActive = $statusLabel === 'Aktif';
                         $port = (int)($device['snmp_port'] ?? 0);
                         $address = display_text($device['ip_address'] ?? null);
@@ -373,7 +373,7 @@ function dashboard_detail_result(int $userId, array $query): array
         ]];
     } catch (Throwable $e) {
         error_log('Dashboard detail failed: ' . $e->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Data kategori tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => toast_message('data.category-failed')]];
     }
 }
 
@@ -456,6 +456,6 @@ function recent_activity_result(int $userId, array $query): array
         return ['status' => 200, 'payload' => $payload];
     } catch (Throwable $e) {
         error_log('Recent activity polling failed: ' . $e->getMessage());
-        return ['status' => 502, 'payload' => ['ok' => false, 'message' => 'Aktivitas terbaru tidak dapat dimuat.']];
+        return ['status' => 502, 'payload' => ['ok' => false, 'message' => toast_message('data.activity-failed')]];
     }
 }

@@ -13,15 +13,15 @@ function linnms_action_code_message(array $result, string $fallback): string
     $data = is_array($result['data'] ?? null) ? $result['data'] : [];
     if (isset($data['reason'])) return $fallback;
     return match ((string)($result['code'] ?? 'internal')) {
-        'validation' => 'Periksa kembali data yang diisi.',
-        'not_found' => 'Data tidak ditemukan.',
-        'forbidden' => 'Akses tidak diizinkan.',
-        'unsupported' => 'Fitur ini belum tersedia.',
-        'device_unreachable' => 'Perangkat tidak dapat dijangkau.',
-        'device_auth_failed' => 'Autentikasi perangkat gagal.',
+        'validation' => toast_message('validation.required-fields'),
+        'not_found' => toast_message('request.not-found'),
+        'forbidden' => toast_message('access.denied'),
+        'unsupported' => toast_message('feature.unavailable'),
+        'device_unreachable' => toast_message('device.unreachable'),
+        'device_auth_failed' => toast_message('device.auth-failed'),
         'device_rejected' => 'Perangkat menolak permintaan.',
-        'conflict' => 'Data sedang diproses. Coba lagi.',
-        'internal' => 'Permintaan tidak dapat diproses.',
+        'conflict' => toast_message('request.processing'),
+        'internal' => toast_message('request.unavailable'),
         default => $fallback,
     };
 }

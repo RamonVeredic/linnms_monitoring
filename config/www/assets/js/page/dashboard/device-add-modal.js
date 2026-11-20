@@ -10,6 +10,7 @@
 
   let opener = null;
   let request = null;
+  let formLoaded = false;
 
   const clearUrl = () => {
     const url = new URL(window.location.href);
@@ -26,9 +27,15 @@
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('device-add-modal-open');
     clearUrl();
-    body.replaceChildren();
     if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
     opener = null;
+  };
+
+  const focusForm = () => {
+    const field = body.querySelector('[aria-invalid="true"]')
+      || body.querySelector('[data-device-type] + .select-button, [data-device-type]')
+      || closeButton;
+    field?.focus({ preventScroll: true });
   };
 
   const open = async () => {
@@ -38,32 +45,39 @@
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('device-add-modal-open');
+    if (formLoaded) {
+      focusForm();
+      return;
+    }
+    closeButton?.focus({ preventScroll: true });
+    body.removeAttribute('role');
     body.innerHTML = '<p class="text-muted" role="status">Memuat formulir...</p>';
-    request?.abort();
-    request = new AbortController();
+    const controller = new AbortController();
+    request = controller;
     const url = new URL('data.php', window.location.href);
     url.searchParams.set('type', 'device-add-form');
     try {
-      const response = await window.linnmsAjax.request(url.toString(), { signal: request.signal, cache: 'no-store' });
+      const response = await window.linnmsAjax.request(url.toString(), { signal: controller.signal, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
+      if (request !== controller) return;
       if (!response.ok || data.ok !== true || typeof data.html !== 'string') {
         throw new Error(String(data.message || 'Form tambah perangkat tidak dapat dimuat.'));
       }
       body.innerHTML = data.html;
       window.linnmsDeviceFormInit?.(body);
-      const invalid = body.querySelector('[aria-invalid="true"]');
-      const select = body.querySelector('[data-device-type] + .select-button, [data-device-type]');
-      (invalid instanceof HTMLElement ? invalid : (select instanceof HTMLElement ? select : closeButton))?.focus({ preventScroll: true });
+      formLoaded = true;
+      focusForm();
     } catch (error) {
-      if (error?.name === 'AbortError' || modal.hidden) return;
+      if (request !== controller || error?.name === 'AbortError') return;
       body.textContent = error instanceof Error ? error.message : 'Form tambah perangkat tidak dapat dimuat.';
       body.setAttribute('role', 'alert');
+    } finally {
+      if (request === controller) request = null;
     }
   };
 
   openButton.addEventListener('click', open);
   closeButton?.addEventListener('click', close);
-  modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
   document.addEventListener('keydown', (event) => {
     if (modal.hidden || event.defaultPrevented) return;
     if (event.key === 'Escape') { event.preventDefault(); close(); return; }

@@ -16,11 +16,11 @@ if (empty($onuView['ok'])) {
 }
 extract($onuView);
 $rebootMessages = [
-    'confirm' => 'Jalankan reboot pada ONU ini?',
-    'monitoring' => 'Memantau status ONU setelah perintah reboot.',
-    'waiting_up' => 'Menunggu ONU kembali Up.',
-    'unconfirmed' => 'Reboot belum terkonfirmasi. Perubahan ke status Down tidak teramati dalam 10 detik.',
-    'recovery_timeout' => 'ONU terdeteksi Down setelah reboot dan belum kembali Up dalam 5 menit.',
+    'confirm' => toast_message('reboot.confirm'),
+    'monitoring' => toast_message('reboot.monitoring'),
+    'waiting_up' => toast_message('reboot.waiting-up'),
+    'unconfirmed' => toast_message('reboot.unconfirmed'),
+    'recovery_timeout' => toast_message('reboot.recovery-timeout'),
 ];
 
 $onuTemperatureClass = !is_numeric($temp ?? null) || (float)$temp === 0.0

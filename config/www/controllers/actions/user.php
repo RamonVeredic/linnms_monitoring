@@ -27,11 +27,11 @@ function handle_user_action(string $action): bool
         $username = trim((string)($_POST['username'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
         if (preg_match('/^[A-Za-z0-9._-]{3,80}$/', $username) !== 1) {
-            flash('error', 'Username minimal 3 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip.');
+            flash('error', toast_message('user.username-format'));
             redirect('?page=dashboard');
         }
         if ($password === '') {
-            flash('error', 'Password wajib diisi.');
+            flash('error', toast_message('user.password-required'));
             redirect('?page=dashboard');
         }
         $result = linnms_user_action_request($uid, $action, [
@@ -40,8 +40,8 @@ function handle_user_action(string $action): bool
             'display_name' => trim((string)($_POST['display_name'] ?? '')),
         ]);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? 'Akun user ' . $username . ' berhasil dibuat.'
-            : linnms_action_code_message($result, 'Akun gagal dibuat. Periksa kembali data yang dimasukkan.'));
+            ? toast_message('user.created', ['username' => $username])
+            : linnms_action_code_message($result, toast_message('user.create-failed')));
         redirect('?page=dashboard');
     }
 
@@ -54,10 +54,10 @@ function handle_user_action(string $action): bool
             'make_active' => (string)($_POST['make_active'] ?? '0'),
         ]);
         if (!empty($result['ok'])) {
-            flash('success', $action === 'toggle_user' ? 'Status akun diperbarui.' : 'Akun user beserta datanya dihapus.');
+            flash('success', $action === 'toggle_user' ? toast_message('user.status-updated') : toast_message('user.deleted'));
         } else {
             flash('error', linnms_action_code_message($result,
-                $action === 'toggle_user' ? 'Status akun gagal diperbarui.' : 'Akun user gagal dihapus.'));
+                $action === 'toggle_user' ? toast_message('user.status-update-failed') : toast_message('user.delete-failed')));
         }
         redirect('?page=dashboard');
     }
@@ -67,12 +67,12 @@ function handle_user_action(string $action): bool
         $id = valid_positive_id($_POST['user_id'] ?? null);
         $password = (string)($_POST['password'] ?? '');
         if ($id === null || $password === '') {
-            flash('error', 'User/password tidak valid.');
+            flash('error', toast_message('user.password-input-invalid'));
             redirect('?page=dashboard');
         }
         $result = linnms_user_action_request($uid, $action, ['user_id' => $id, 'password' => $password]);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? 'Password user diperbarui.' : linnms_action_code_message($result, 'Password user gagal diperbarui.'));
+            ? toast_message('user.password-updated') : linnms_action_code_message($result, toast_message('user.password-update-failed')));
         redirect('?page=dashboard');
     }
 
@@ -83,9 +83,9 @@ function handle_user_action(string $action): bool
         }
         $error = null;
         if (trim($data['display_name']) === '' || mb_strlen(trim($data['display_name'])) > 60) {
-            $error = 'Nama wajib diisi dan maksimal 60 karakter.';
+            $error = toast_message('user.name-invalid');
         } elseif ($data['current_password'] === '') {
-            $error = 'Password saat ini wajib diisi.';
+            $error = toast_message('user.current-pass-required');
         } elseif ($data['new_password'] !== '' && mb_strlen($data['new_password']) < 6) {
             $error = 'Password baru minimal 6 karakter.';
         } elseif (mb_strlen($data['phone_number']) > 24) {
@@ -99,10 +99,11 @@ function handle_user_action(string $action): bool
         if (!empty($result['ok'])) {
             $_SESSION['username'] = (string)($result['data']['username'] ?? '');
             $_SESSION['display_name'] = (string)($result['data']['display_name'] ?? '');
-            flash('success', 'Profil berhasil diperbarui.');
+            application_log_event($uid, 'Akun', 'update_profile', 'success', linnms_log_message('success', 'user.profile-updated'));
+            flash('success', toast_message('user.profile-updated'));
         } else {
             flash('error', linnms_action_reason($result, '') === 'auth' ? 'Pastikan password sesuai'
-                : linnms_action_code_message($result, 'Profil gagal diperbarui.'));
+                : linnms_action_code_message($result, toast_message('user.profile-update-failed')));
         }
         redirect(public_settings_url() . '#account');
     }
@@ -110,7 +111,7 @@ function handle_user_action(string $action): bool
     require_admin_role();
     $id = valid_positive_id($_POST['user_id'] ?? null);
     if ($id === null) {
-        flash('error', 'Akun pengguna tidak valid.');
+        flash('error', toast_message('user.invalid'));
         redirect(public_page_url('settings-admin') . '#user-limits');
     }
     $data = ['user_id' => $id];
@@ -118,14 +119,17 @@ function handle_user_action(string $action): bool
         $value = $_POST[$key] ?? null;
         if (!is_scalar($value) || filter_var((string)$value, FILTER_VALIDATE_INT,
             ['options' => ['min_range' => 0]]) === false) {
-            flash('error', 'Limit perangkat harus berupa angka bulat tidak negatif.');
+            flash('error', toast_message('user.limit-invalid'));
             redirect(public_page_url('settings-admin') . '#user-limits');
         }
         $data[$key] = (int)$value;
     }
     $result = linnms_user_action_request($uid, $action, $data);
+    if (!empty($result['ok'])) {
+        application_log_event($uid, 'Akun', 'save_user_device_limits', 'success', linnms_log_message('success', 'user.limits-updated', ['id' => $id]));
+    }
     flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-        ? 'Limit perangkat pengguna disimpan.'
-        : linnms_action_code_message($result, 'Limit perangkat pengguna gagal disimpan.'));
+        ? toast_message('user.limits-saved')
+        : linnms_action_code_message($result, toast_message('user.limits-failed')));
     redirect(public_page_url('settings-admin') . '#user-limits');
 }

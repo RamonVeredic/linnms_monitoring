@@ -6,7 +6,7 @@
   if (!form || !testButton) return;
 
   const notify = (ok, message) => {
-    const text = String(message || '').trim() || (ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal');
+    const text = String(message || '').trim() || (ok ? window.linnmsToastMessage("js.whatsapp.test-ok") : window.linnmsToastMessage("js.whatsapp.test-failed"));
     if (typeof window.linnmsNotify === 'function') window.linnmsNotify(ok ? 'success' : 'error', text);
   };
 
@@ -51,10 +51,10 @@
       }
       notify(
         payload.ok === true,
-        String(payload.message || (payload.ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal'))
+        String(payload.message || (payload.ok ? window.linnmsToastMessage("js.whatsapp.test-ok") : window.linnmsToastMessage("js.whatsapp.test-failed")))
       );
     } catch (_) {
-      notify(false, 'Tes koneksi gagal. Coba lagi');
+      notify(false, window.linnmsToastMessage("js.telegram.test-failed"));
     } finally {
 
       if (tokenInput instanceof HTMLInputElement) tokenInput.value = tokenValue;

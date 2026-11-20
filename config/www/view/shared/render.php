@@ -54,6 +54,19 @@ function nav_active(string $page, string $target): string
 
 function render_flash_toast(array $flashes): void
 {
+    $catalog = toast_message_catalog();
+    $shared = array_fill_keys([
+        'api-olt.current', 'live.device-sync-failed', 'live.device-sync-ok',
+        'live.flow-control-failed', 'live.flow-control-saved', 'live.lan-save-failed',
+        'live.lan-saved', 'live.pon-state-failed', 'live.ssid-save-failed',
+        'live.uncfg-refresh-failed', 'live.uncfg-updated', 'olt.profile-delete-failed',
+        'olt.profile-save-failed', 'olt.updated', 'request.unavailable',
+        'settings.device-enable-failed', 'whatsapp.group-not-found', 'whatsapp.token-created',
+    ], true);
+    $messages = array_intersect_key($catalog, $shared)
+        + array_filter($catalog, static fn(string $key): bool => str_starts_with($key, 'js.'), ARRAY_FILTER_USE_KEY);
+    $messageJson = json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_THROW_ON_ERROR);
+    echo '<template data-toast-messages>' . h($messageJson) . '</template>';
     if ($flashes === []) return;
 
     $types = ['success', 'error', 'waiting', 'scanning', 'warning', 'info'];

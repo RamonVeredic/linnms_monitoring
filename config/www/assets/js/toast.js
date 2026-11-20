@@ -43,6 +43,14 @@
         (e.__startedAt = Date.now()),
         (e.__timer = window.setTimeout(() => n(e), t)));
     };
+  const catalog = JSON.parse(document.querySelector("template[data-toast-messages]")?.content.textContent || "{}");
+
+  window.linnmsToastMessage = (key, values = {}) => {
+    const message = catalog[key] || catalog["request.unavailable"] || key;
+    return message.replace(/\{([a-z0-9_]+)\}/gi, (placeholder, name) =>
+      Object.hasOwn(values, name) ? String(values[name]) : placeholder);
+  };
+
   window.linnmsToast = (a, o, r = {}) => {
     const s = String(o || "").trim();
     if ("" === s) return null;

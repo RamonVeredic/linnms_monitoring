@@ -15,7 +15,7 @@ function linnms_sign_in_user(array $user): void
 function require_admin_role(): void
 {
     if (!is_admin()) {
-        flash('error', 'Tidak memiliki akses');
+        flash('error', toast_message('access.denied'));
         redirect('?page=dashboard');
     }
 }

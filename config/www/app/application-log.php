@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/internal-api-client.php';
 
+$logMessageHelper = dirname(realpath(__DIR__) ?: __DIR__, 2) . '/app/runtime/src/helpers/log-message.php';
+require_once is_file($logMessageHelper) ? $logMessageHelper : '/opt/linnms/runtime/src/helpers/log-message.php';
+unset($logMessageHelper);
+
 function application_log_event(?int $userId, string $area, string $action, string $level, string $message, array $context = [], ?string $actor = null, ?string $ipAddress = null): void
 {
     static $writing = false;
@@ -52,9 +56,16 @@ function register_application_error_logging(): void
     });
     register_shutdown_function(static function (): void {
         $fatal = error_get_last();
-        if (!is_array($fatal) || !in_array((int)($fatal['type'] ?? 0), [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) return;
+        if (!is_array($fatal) || !in_array((int)($fatal['type'] ?? 0), [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+            $status = http_response_code();
+            if ($status >= 500 && empty($GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'])) {
+                application_log_event(current_user_id() ?: null, 'System', 'application_error', 'error',
+                    linnms_log_message('error', 'app.http-error', ['status' => $status]), ['http_status' => $status], current_username() ?: null);
+            }
+            return;
+        }
         application_log_error(new ErrorException(
-            (string)($fatal['message'] ?? 'Fatal error tidak diketahui'), 0, (int)$fatal['type'],
+            (string)($fatal['message'] ?? linnms_log_message('critical', 'app.unknown-fatal')), 0, (int)$fatal['type'],
             (string)($fatal['file'] ?? ''), (int)($fatal['line'] ?? 0)
         ), 'php_fatal_error', 'critical');
     });

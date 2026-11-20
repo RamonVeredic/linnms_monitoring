@@ -26,7 +26,7 @@ function handle_settings_action(string $action): bool
     $uid = current_user_id();
 
     if ($action === 'run_update') {
-        flash('warning', 'LINNMS sekarang diperbarui melalui Docker image. Jalankan: docker compose pull && docker compose up -d --force-recreate');
+        flash('warning', toast_message('settings.docker-update'));
         redirect(public_settings_url() . '#upgrade');
     }
 
@@ -40,15 +40,15 @@ function handle_settings_action(string $action): bool
         }
         $result = linnms_settings_action_request($uid, $action, $data);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? '"Berhasil menyimpan notifikasi"'
-            : linnms_action_code_message($result, 'Gagal menyimpan notifikasi'));
+            ? toast_message('settings.alerts-saved')
+            : linnms_action_code_message($result, toast_message('settings.alerts-save-failed')));
         redirect($returnPage);
     }
 
     if ($action === 'save_notification_setting') {
         $key = trim((string)($_POST['setting_key'] ?? ''));
         $definitions = [
-            'problem_threshold' => ['Batas Rx Power', 'number'],
+            'problem_threshold' => [toast_message('settings.rx-limit'), 'number'],
             'signal_threshold_dbm' => ['RX Power', 'number'],
             'notify_onu_signal' => ['RX Power', 'toggle'],
             'notify_onu_state' => ['Status ONU', 'toggle'],
@@ -61,9 +61,9 @@ function handle_settings_action(string $action): bool
         $definition = $definitions[$key] ?? null;
         $raw = trim((string)($_POST['setting_value'] ?? ''));
         $error = null;
-        if (!is_array($definition)) $error = 'Pengaturan notifikasi tidak valid.';
+        if (!is_array($definition)) $error = toast_message('settings.notification-invalid');
         elseif ($definition[1] === 'number') {
-            if ($raw === '' || !is_numeric($raw)) $error = $definition[0] . ' wajib berupa angka.';
+            if ($raw === '' || !is_numeric($raw)) $error = toast_message('settings.number-required', ['field' => $definition[0]]);
             elseif (!is_finite((float)$raw)) {
                 $error = $definition[0] . ' harus berupa angka yang valid.';
             }
@@ -71,20 +71,20 @@ function handle_settings_action(string $action): bool
         if ($error !== null) linnms_action_result(false, $error, public_page_url('notification') . '#notification-settings');
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? $definition[0] . ' berhasil disimpan.'
-            : linnms_action_code_message($result, 'Pengaturan notifikasi gagal disimpan.'),
+            ? toast_message('settings.saved', ['field' => $definition[0]])
+            : linnms_action_code_message($result, toast_message('settings.notify-failed')),
             public_page_url('notification') . '#notification-settings');
     }
 
     if ($action === 'save_notification_devices') {
         $ids = $_POST['notification_device_ids'] ?? [];
         if (!is_array($ids)) {
-            linnms_action_result(false, 'Pilihan perangkat tidak valid.', public_page_url('notification') . '#notification-devices');
+            linnms_action_result(false, toast_message('settings.devices-invalid'), public_page_url('notification') . '#notification-devices');
         }
         $result = linnms_settings_action_request($uid, $action, ['notification_device_ids' => $ids]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? 'Pilihan perangkat notifikasi berhasil disimpan.'
-            : linnms_action_code_message($result, 'Pilihan perangkat notifikasi gagal disimpan.'),
+            ? toast_message('settings.alert-devices-saved')
+            : linnms_action_code_message($result, toast_message('settings.alert-devices-failed')),
             public_page_url('notification') . '#notification-devices');
     }
 
@@ -97,30 +97,30 @@ function handle_settings_action(string $action): bool
             'olt_graph_interval_minutes' => ['Interval Sampel Trafik OLT', 'sync'],
             'sync_discovery_interval_minutes' => ['Interval Low Sync', 'sync'],
             'sync_middle_interval_minutes' => ['Interval Middle Sync', 'sync'],
-            'sync_fast_deadline_seconds' => ['Batas durasi Fast Sync', 'sync'],
-            'sync_discovery_deadline_seconds' => ['Batas durasi Low Sync', 'sync'],
-            'sync_middle_deadline_seconds' => ['Batas durasi Middle Sync', 'sync'],
-            'snmp_request_timeout_ms' => ['Batas waktu SNMP', 'sync'],
-            'onu_missing_scan_limit' => ['Batas ONU hilang', 'onu-missing'],
+            'sync_fast_deadline_seconds' => [toast_message('settings.fast-limit'), 'sync'],
+            'sync_discovery_deadline_seconds' => [toast_message('settings.low-limit'), 'sync'],
+            'sync_middle_deadline_seconds' => [toast_message('settings.middle-limit'), 'sync'],
+            'snmp_request_timeout_ms' => [toast_message('settings.snmp-timeout'), 'sync'],
+            'onu_missing_scan_limit' => [toast_message('settings.onu-missing-limit'), 'onu-missing'],
             'reader_count' => ['Jumlah Reader', 'sync'],
             'fast_sync_onu_batch_size' => ['ONU per Batch Fast Sync', 'sync'],
             'writer_count' => ['Jumlah Writer', 'sync'],
         ];
         $definition = $definitions[$key] ?? null;
         if (!is_array($definition)) {
-            flash('error', 'Pengaturan yang dipilih tidak valid.');
+            flash('error', toast_message('settings.selection-invalid'));
             redirect(public_settings_url() . '#sync');
         }
         [$label, $anchor] = $definition;
         if (preg_match('/^-?\d+$/', $raw) !== 1) {
-            flash('error', $label . ' harus berupa angka bulat.');
+            flash('error', toast_message('settings.integer-required', ['field' => $label]));
             redirect(public_settings_url() . '#' . $anchor);
         }
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
         $code = (string)linnms_action_reason($result, 'internal');
         flash(!empty($result['ok']) ? ($code === 'unchanged' ? 'info' : 'success') : 'error',
-            !empty($result['ok']) ? ($code === 'unchanged' ? 'Tidak ada perubahan pada ' . $label . '.' : $label . ' berhasil disimpan.')
-                : linnms_action_code_message($result, $label . ' gagal disimpan.'));
+            !empty($result['ok']) ? ($code === 'unchanged' ? toast_message('settings.unchanged', ['field' => $label]) : toast_message('settings.saved', ['field' => $label]))
+                : linnms_action_code_message($result, toast_message('settings.save-failed', ['field' => $label])));
         redirect(public_settings_url() . '#' . $anchor);
     }
 
@@ -133,8 +133,8 @@ function handle_settings_action(string $action): bool
         }
         $result = linnms_settings_action_request($uid, $action, $data);
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? 'Jadwal dan durasi sinkronisasi berhasil disimpan.'
-            : linnms_action_code_message($result, 'Jadwal sinkronisasi gagal disimpan.'));
+            ? toast_message('settings.sync-saved')
+            : linnms_action_code_message($result, toast_message('settings.sync-save-failed')));
         redirect(public_settings_url() . '#sync');
     }
 
@@ -144,16 +144,16 @@ function handle_settings_action(string $action): bool
             'api_olt_type_support' => $_POST['api_olt_type_support'] ?? [],
         ]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? 'Pengaturan perangkat disimpan.'
-            : linnms_action_code_message($result, 'Gagal mengaktifkan perangkat.'),
+            ? toast_message('settings.devices-saved')
+            : linnms_action_code_message($result, toast_message('settings.device-enable-failed')),
             public_settings_url() . '#drivers');
     }
 
     $result = linnms_settings_action_request($uid, $action, []);
     $code = (string)linnms_action_reason($result, 'internal');
-    if ($code === 'inactive') flash('warning', 'Akses belum aktif.');
-    elseif ($code === 'unchanged') flash('warning', 'Tidak ada perubahan.');
-    elseif (!empty($result['ok'])) flash('success', 'Akses diperbarui.');
-    else flash('error', linnms_action_code_message($result, 'Akses tidak dapat diperbarui.'));
+    if ($code === 'inactive') flash('warning', toast_message('settings.access-inactive'));
+    elseif ($code === 'unchanged') flash('warning', toast_message('change.unchanged'));
+    elseif (!empty($result['ok'])) flash('success', toast_message('settings.access-updated'));
+    else flash('error', linnms_action_code_message($result, toast_message('settings.access-update-failed')));
     redirect(public_settings_url() . '#drivers');
 }

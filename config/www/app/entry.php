@@ -18,7 +18,7 @@ $prepareSetup = $requestMethod === 'GET' && $requestPath === '/setup';
 $entry = internal_api_request(current_user_id(), 'app.entry.read',
     ['prepare_setup' => $prepareSetup], $prepareSetup ? 40 : 10);
 if (!isset($entry['mode']) || !is_array($entry['identity'] ?? null)) {
-    throw new RuntimeException('Kontrak entry aplikasi tidak lengkap.');
+    throw new RuntimeException(toast_message('entry.contract-invalid'));
 }
 $mode = (string)$entry['mode'];
 $needsActivation = in_array($mode, ['pending', 'fault'], true);
@@ -27,10 +27,10 @@ if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_s
     try {
         verify_csrf();
         if ($operation === 'access_submit' && ($requestPath !== '/activate' || !$needsActivation || $setupWithLicense)) {
-            throw new RuntimeException('Aktivasi tidak tersedia.');
+            throw new RuntimeException(toast_message('entry.activation-unavailable'));
         }
         if ($operation === 'setup_submit' && ($requestPath !== '/setup' || $mode !== 'ready')) {
-            throw new RuntimeException('Setup akun tidak tersedia.');
+            throw new RuntimeException(toast_message('entry.setup-unavailable'));
         }
         $result = internal_api_request(0, 'app.entry.action', [
             'action' => $operation,
@@ -43,14 +43,14 @@ if ($requestMethod === 'POST' && in_array($operation, ['access_submit', 'setup_s
         if ($operation === 'access_submit') {
             unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['display_name'], $_SESSION['role']);
             session_regenerate_id(true);
-            flash('success', 'Aktivasi berhasil.');
+            flash('success', toast_message('entry.activated'));
             header('Location: ' . public_app_url(), true, 303);
             exit;
         }
         $createdUser = is_array($result['user'] ?? null) ? $result['user'] : null;
-        if ($createdUser === null) throw new RuntimeException('Akun yang baru dibuat belum dapat dimuat.');
+        if ($createdUser === null) throw new RuntimeException(toast_message('entry.account-load-failed'));
         linnms_sign_in_user($createdUser);
-        flash('success', 'Akun berhasil dibuat.');
+        flash('success', toast_message('entry.account-created'));
         header('Location: ' . public_page_url('dashboard'), true, 303);
         exit;
     } catch (Throwable $error) {
@@ -81,7 +81,7 @@ if (empty($entry['profile_exists'])) {
     if ($requestPath !== '/setup') { header('Location: ' . $setupUrl, true, 303); exit; }
     $flashes = pull_flashes();
     $presetUser = mb_strtolower(trim((string)($entry['subject'] ?? '')));
-    $setupError = $setupWithLicense ? (string)($entry['setup_error'] ?: 'Username pelanggan belum tersedia dari CP.') : '';
+    $setupError = $setupWithLicense ? (string)($entry['setup_error'] ?: toast_message('entry.cp-user-missing')) : '';
     $setupContact = is_array($entry['service_contact'] ?? null) ? $entry['service_contact'] : [];
     $presetEmail = (string)($setupContact['email'] ?? '');
     $presetCompany = (string)($setupContact['company'] ?? '');

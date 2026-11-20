@@ -95,7 +95,7 @@
     const invalid = [...credentialFields.querySelectorAll('[data-whatsapp-field] input')]
       .find((input) => input instanceof HTMLInputElement && input.required && input.value.trim() === '');
     if (invalid instanceof HTMLInputElement && invalid.readOnly) {
-      notify(false, 'Buat token terlebih dahulu sebelum meminta daftar grup.');
+      notify(false, window.linnmsToastMessage("js.whatsapp.token-needed"));
       return;
     }
     if (invalid instanceof HTMLInputElement) {
@@ -110,9 +110,9 @@
       body.set('action', 'list_whatsapp_groups');
       const response = await window.linnmsAjax.request(window.location.href, { ...requestOptions, body });
       const result = await response.json().catch(() => ({}));
-      if (result?.ok !== true) throw new Error(String(result?.message || 'Gagal meminta daftar grup.'));
+      if (result?.ok !== true) throw new Error(String(result?.message || window.linnmsToastMessage("js.whatsapp.groups-failed")));
       const groups = Array.isArray(result.groups) ? result.groups : [];
-      if (groups.length === 0) throw new Error('Grup tidak ditemukan pada gateway.');
+      if (groups.length === 0) throw new Error(window.linnmsToastMessage("whatsapp.group-not-found"));
       const previous = groupSelect instanceof HTMLSelectElement ? groupSelect.value : '';
       const options = [new Option('Pilih grup WhatsApp', '')];
       groups.forEach((item) => options.push(new Option(item.label, item.id)));
@@ -125,7 +125,7 @@
       }
       notify(true, result.message);
     } catch (error) {
-      notify(false, error instanceof Error ? error.message : 'Gagal meminta daftar grup.');
+      notify(false, error instanceof Error ? error.message : window.linnmsToastMessage("js.whatsapp.groups-failed"));
     } finally {
       groupButton.disabled = false;
       groupButton.innerHTML = original;
@@ -152,7 +152,7 @@
       const response = await window.linnmsAjax.request(window.location.href, { ...requestOptions, body });
       const result = await response.json().catch(() => ({}));
       if (result?.ok !== true || typeof result.token !== 'string' || result.token === '') {
-        throw new Error(String(result?.message || 'Token belum berhasil dibuat.'));
+        throw new Error(String(result?.message || window.linnmsToastMessage("js.whatsapp.token-failed")));
       }
       const token = credentialFields.querySelector('[data-whatsapp-token-input]');
       if (token instanceof HTMLInputElement) token.value = result.token;
@@ -160,9 +160,9 @@
       credentialFields.querySelectorAll('[data-whatsapp-generator-session], [data-whatsapp-generator-secret]').forEach((input) => {
         if (input instanceof HTMLInputElement) input.required = false;
       });
-      notify(true, String(result.message || 'Token session berhasil dibuat.'));
+      notify(true, String(result.message || window.linnmsToastMessage("whatsapp.token-created")));
     } catch (error) {
-      notify(false, error instanceof Error ? error.message : 'Token belum berhasil dibuat.');
+      notify(false, error instanceof Error ? error.message : window.linnmsToastMessage("js.whatsapp.token-failed"));
     } finally {
       button.disabled = false;
       button.innerHTML = original;
@@ -221,9 +221,9 @@
         headers: { ...requestOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
       });
       const result = await response.json().catch(() => ({}));
-      notify(result?.ok === true, String(result?.message || (result?.ok ? 'Tes koneksi berhasil' : 'Tes koneksi gagal')));
+      notify(result?.ok === true, String(result?.message || (result?.ok ? window.linnmsToastMessage("js.whatsapp.test-ok") : window.linnmsToastMessage("js.whatsapp.test-failed"))));
     } catch {
-      notify(false, 'Tes koneksi belum dapat diproses. Periksa koneksi lalu coba kembali');
+      notify(false, window.linnmsToastMessage("js.whatsapp.test-unavailable"));
     } finally {
       testButton.disabled = false;
       testButton.innerHTML = original;

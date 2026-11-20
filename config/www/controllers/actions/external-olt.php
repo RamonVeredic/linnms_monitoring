@@ -23,15 +23,15 @@ function handle_api_action(string $action): bool
         $returnPage = action_return_page($_POST['return_page'] ?? '', public_settings_url(), ['settings', 'settings-admin']);
         $result = linnms_external_olt_action_request($uid, $action);
         if (linnms_action_reason($result, '') === 'api_unavailable') {
-            flash('error', 'Layanan akun belum tersedia.');
+            flash('error', toast_message('api-olt.account-unavailable'));
             redirect(public_settings_url());
         }
         $message = match ((string)linnms_action_reason($result, 'internal')) {
             'ok' => 'Koneksi OLT External API aktif.',
-            'network' => 'Koneksi OLT External API tidak tersedia. Periksa koneksi jaringan.',
-            'auth' => 'Koneksi OLT External API ditolak. Periksa pengaturan layanan.',
-            'server' => 'Koneksi OLT External API gagal. Server API tidak merespons.',
-            default => linnms_action_code_message($result, 'Koneksi API gagal.'),
+            'network' => toast_message('api-olt.unreachable'),
+            'auth' => toast_message('api-olt.access-denied'),
+            'server' => toast_message('api-olt.server-error'),
+            default => linnms_action_code_message($result, toast_message('api-olt.connection-failed')),
         };
         flash(!empty($result['ok']) ? 'success' : 'error', $message);
         redirect($returnPage);
@@ -71,8 +71,13 @@ function handle_api_action(string $action): bool
                 'olt_type' => $type,
         ]);
         if (!empty($result['ok'])) {
+            $device = mb_substr($name, 0, 120);
+            $message = $action === 'add_olt'
+                ? linnms_log_message('success', 'api-olt.added', ['device' => $device])
+                : linnms_log_message('success', 'api-olt.connection-updated', ['device' => $device]);
+            application_log_event($uid, 'OLT', $action, 'success', $message);
             if ($action === 'add_olt') unset($_SESSION['old_olt']);
-            flash('success', $action === 'add_olt' ? 'OLT berhasil ditambahkan.' : 'Koneksi OLT berhasil diperbarui.');
+            flash('success', $action === 'add_olt' ? toast_message('olt.added') : toast_message('api-olt.connection-updated'));
             redirect('?page=dashboard');
         }
         if ($action === 'add_olt') {
@@ -85,19 +90,19 @@ function handle_api_action(string $action): bool
             $scope = ($quota['blocked_by'] ?? '') === 'q' ? 'keseluruhan' : 'akun';
             $used = $scope === 'keseluruhan' ? (int)($quota['used'] ?? 0) : (int)($quota['user_used'] ?? 0);
             $limit = $scope === 'keseluruhan' ? (int)($quota['limit'] ?? 0) : (int)($quota['user_limit'] ?? 0);
-            flash('error', 'Batas OLT ' . $scope . ' telah tercapai (' . $used . '/' . $limit . ').');
+            flash('error', toast_message('api-olt.quota-reached', ['scope' => $scope, 'used' => $used, 'limit' => $limit]));
         } elseif ($code === 'api_unavailable') {
-            flash('error', 'Layanan akun belum tersedia.');
+            flash('error', toast_message('api-olt.account-unavailable'));
             redirect(public_settings_url());
         } elseif ($code === 'not_found') {
-            flash('error', 'OLT API tidak valid.');
+            flash('error', toast_message('api-olt.invalid'));
             redirect('?page=dashboard');
         } elseif ($code === 'validation') {
-            flash('error', 'Data koneksi OLT tidak valid.');
+            flash('error', toast_message('api-olt.connection-invalid'));
         } elseif ($code === 'driver_disabled') {
-            flash('error', 'Jenis OLT ini tidak diizinkan atau sedang dinonaktifkan.');
+            flash('error', toast_message('api-olt.driver-disabled'));
         } else {
-            flash('error', $action === 'add_olt' ? 'OLT gagal ditambahkan.' : 'Perubahan koneksi OLT gagal dikirim ke Zetset.');
+            flash('error', $action === 'add_olt' ? toast_message('olt.add-failed') : toast_message('api-olt.update-failed'));
         }
         redirect($returnPage);
     }
@@ -105,28 +110,33 @@ function handle_api_action(string $action): bool
     if ($action === 'scan_olt') {
         $id = valid_positive_id($_POST['olt_id'] ?? null);
         if ($id === null) {
-            flash('error', 'OLT tidak valid.');
+            flash('error', toast_message('olt.invalid'));
             redirect('?page=dashboard');
         }
         $result = linnms_external_olt_action_request($uid, $action, ['olt_id' => $id]);
         $code = (string)linnms_action_reason($result, 'internal');
+        if ($code === 'scan_not_ready') {
+            $minutes = max(1, (int)ceil((int)($result['data']['retry_after'] ?? 0) / 60));
+            flash('info', toast_message('api-olt.scan-wait', ['minutes' => $minutes]));
+            redirect('?page=dashboard');
+        }
         if ($code === 'scan_cooldown') {
-            flash('info', 'Data sudah terupdate.');
+            flash('info', toast_message('api-olt.current'));
             redirect('?page=dashboard');
         }
         if ($code === 'api_unavailable') {
-            flash('error', 'Layanan akun belum tersedia.');
+            flash('error', toast_message('api-olt.account-unavailable'));
             redirect(public_settings_url());
         }
         if ($code === 'success') {
             $count = (int)($result['data']['count'] ?? 0);
-            flash('success', "Pemindaian selesai. {$count} ONU berhasil diperbarui.");
+            flash('success', toast_message('api-olt.scan-complete', ['count' => $count]));
         } elseif ($code === 'scanning') {
-            flash('scanning', 'Pemindaian pertama kali mungkin membutuhkan waktu sedikit lebih lama. Silakan tunggu beberapa saat.');
+            flash('scanning', toast_message('api-olt.scan-running'));
         } elseif ($code === 'not_found') {
-            flash('error', 'OLT tidak valid.');
+            flash('error', toast_message('olt.invalid'));
         } else {
-            flash('error', 'Pemindaian OLT gagal.');
+            flash('error', toast_message('api-olt.scan-failed'));
         }
         redirect('?page=dashboard');
     }
@@ -134,15 +144,15 @@ function handle_api_action(string $action): bool
     $id = valid_positive_id($_POST['olt_id'] ?? null);
     $index = trim((string)($_POST['onu_index'] ?? ''));
     if ($id === null || $index === '') {
-        flash('error', 'Data ONU tidak valid.');
+        flash('error', toast_message('onu.invalid'));
         redirect('?page=onus');
     }
     $result = linnms_external_olt_action_request($uid, $action, ['olt_id' => $id, 'onu_index' => $index]);
     if (linnms_action_reason($result, '') === 'api_unavailable') {
-        flash('error', 'Layanan akun belum tersedia.');
+        flash('error', toast_message('api-olt.account-unavailable'));
         redirect(public_settings_url());
     }
     flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-        ? 'Perintah reboot ONU berhasil dikirim.' : 'Reboot ONU gagal.');
+        ? toast_message('api-olt.reboot-sent') : toast_message('api-olt.reboot-failed'));
     redirect('?page=onus');
 }

@@ -17,9 +17,9 @@ function linnms_onu_action_request(int $uid, string $action, array $data = []): 
 function linnms_onu_action_feedback(array $result, string $redirect): never
 {
     if (linnms_action_reason($result, '') === 'unsupported') {
-        flash('warning', 'Aksi belum didukung untuk perangkat ini');
+        flash('warning', toast_message('device.unsupported'));
     } else {
-        flash('error', linnms_action_code_message($result, 'Gagal menjalankan tindakan.'));
+        flash('error', linnms_action_code_message($result, toast_message('onu.action-failed')));
     }
     redirect($redirect);
 }
@@ -44,18 +44,18 @@ function handle_onu_action(string $action): bool
 
     if ($action === 'cancel_onu_backup') {
         unset($_SESSION['onu_backup_preview']);
-        flash('success', 'Import dibatalkan');
+        flash('success', toast_message('onu.backup-cancelled'));
         redirect(public_settings_url() . '#onu-backup');
     }
 
     if ($action === 'unsupported_onu_action') {
         $rowId = valid_positive_id($_POST['onu_row_id'] ?? null);
-        flash('warning', 'Aksi belum didukung untuk perangkat ini');
+        flash('warning', toast_message('device.unsupported'));
         redirect($rowId === null ? '?page=onus' : '?page=view-onu&id=' . $rowId);
     }
     if ($action === 'unsupported_olt_port_action') {
         $rowId = valid_positive_id($_POST['olt_row_id'] ?? null);
-        flash('warning', 'Aksi belum didukung untuk perangkat ini');
+        flash('warning', toast_message('device.unsupported'));
         redirect($rowId === null ? '?page=dashboard' : '?page=view-olt&id=' . $rowId . '#olt-pon-config');
     }
 
@@ -90,13 +90,13 @@ function handle_onu_action(string $action): bool
             || strtolower((string)pathinfo($name, PATHINFO_EXTENSION)) !== 'csv'
             || $path === '' || !is_uploaded_file($path)) {
             unset($_SESSION['onu_backup_preview']);
-            flash('error', 'Gagal menjalankan tindakan.');
+            flash('error', toast_message('onu.action-failed'));
             redirect(public_settings_url() . '#onu-backup');
         }
         $content = file_get_contents($path);
         if (!is_string($content) || strlen($content) !== $size) {
             unset($_SESSION['onu_backup_preview']);
-            flash('error', 'Gagal menjalankan tindakan.');
+            flash('error', toast_message('onu.action-failed'));
             redirect(public_settings_url() . '#onu-backup');
         }
         $result = linnms_onu_action_request($uid, $action, [
@@ -116,7 +116,7 @@ function handle_onu_action(string $action): bool
             'summary' => is_array($preview['summary'] ?? null) ? $preview['summary'] : [],
             'rows' => is_array($preview['rows'] ?? null) ? $preview['rows'] : [],
         ];
-        flash('success', 'File berhasil diperiksa');
+        flash('success', toast_message('onu.backup-checked'));
         redirect(public_settings_url() . '#onu-backup');
     }
 
@@ -126,7 +126,7 @@ function handle_onu_action(string $action): bool
         if (!is_array($preview) || (int)($preview['user_id'] ?? 0) !== $uid
             || time() - (int)($preview['created_at'] ?? 0) > (int)($GLOBALS['linnms_onu_backup_limits']['preview_ttl_seconds'] ?? 0)
             || $token === '' || !hash_equals($token, (string)($_POST['preview_token'] ?? ''))) {
-            flash('error', 'Gagal menjalankan tindakan.');
+            flash('error', toast_message('onu.action-failed'));
             redirect(public_settings_url() . '#onu-backup');
         }
         $result = linnms_onu_action_request($uid, $action, [
@@ -135,18 +135,15 @@ function handle_onu_action(string $action): bool
         if (empty($result['ok'])) linnms_onu_action_feedback($result, public_settings_url() . '#onu-backup');
         unset($_SESSION['onu_backup_preview']);
         $updated = (int)($result['data']['updated'] ?? 0);
-        $GLOBALS['LINNMS_ACTION_LOG'] = [
-            'area' => 'Backup ONU',
-            'level' => 'success',
-            'message' => "Import backup ONU selesai: {$updated} diperbarui.",
-        ];
-        flash('success', "Import selesai: {$updated} diperbarui");
+        application_log_event($uid, 'Backup ONU', 'confirm_onu_backup', 'success',
+            linnms_log_message('success', 'onu.backup-imported', ['updated' => $updated]));
+        flash('success', toast_message('onu.backup-imported', ['updated' => $updated]));
         redirect(public_settings_url() . '#onu-backup');
     }
 
     $rowId = valid_positive_id($_POST['onu_row_id'] ?? null);
     if ($rowId === null) {
-        flash('error', 'Gagal menjalankan tindakan.');
+        flash('error', toast_message('onu.action-failed'));
         redirect('?page=onus');
     }
     $destination = '?page=view-onu&id=' . $rowId;
@@ -157,7 +154,8 @@ function handle_onu_action(string $action): bool
         $result = linnms_onu_action_request($uid, $action, $data);
         if (empty($result['ok'])) linnms_onu_action_feedback($result,
             in_array((string)linnms_action_reason($result, ''), ['not_found', 'forbidden'], true) ? '?page=onus' : $destination);
-        flash('success', 'Berhasil mengedit nama');
+        application_log_event($uid, 'ONU', 'update_onu_name', 'success', linnms_log_message('success', 'onu.name-updated', ['id' => $rowId]));
+        flash('success', toast_message('onu.name-updated'));
         redirect($destination);
     }
 
@@ -166,16 +164,19 @@ function handle_onu_action(string $action): bool
             if (array_key_exists($key, $_POST)) $data[$key] = (string)$_POST[$key];
         }
         if (isset($data['auth_mode']) && !in_array(trim($data['auth_mode']), ['Undef', 'Pass', 'Deny'], true)) {
-            flash('error', 'Gagal menjalankan tindakan.');
+            flash('error', toast_message('onu.action-failed'));
             redirect($destination);
         }
         $result = linnms_onu_action_request($uid, $action, $data);
         if (empty($result['ok'])) linnms_onu_action_feedback($result,
             in_array((string)linnms_action_reason($result, ''), ['not_found', 'forbidden'], true) ? '?page=onus' : $destination);
         $code = (string)linnms_action_reason($result, 'ok');
-        if ($code === 'type_updated') flash('success', 'Berhasil mengedit ONU type');
-        elseif ($code === 'location_updated') flash('success', 'Berhasil mengedit lokasi');
-        elseif ($code === 'unchanged') flash('info', 'Tidak ada perubahan');
+        if ($code !== 'unchanged') {
+            application_log_event($uid, 'ONU', 'save_onu_control', 'success', linnms_log_message('success', 'onu.config-updated', ['id' => $rowId]));
+        }
+        if ($code === 'type_updated') flash('success', toast_message('onu.type-updated'));
+        elseif ($code === 'location_updated') flash('success', toast_message('onu.location-updated'));
+        elseif ($code === 'unchanged') flash('info', toast_message('change.unchanged'));
         else {
             $labels = [];
             foreach ((array)($result['data']['changed'] ?? []) as $field) {
@@ -187,7 +188,7 @@ function handle_onu_action(string $action): bool
                 };
             }
             $labels = array_values(array_filter($labels, static fn(string $label): bool => $label !== ''));
-            flash('success', 'Berhasil mengedit ' . implode(' dan ', $labels));
+            flash('success', toast_message('onu.fields-updated', ['fields' => implode(' dan ', $labels)]));
         }
         redirect($destination);
     }
@@ -199,21 +200,21 @@ function handle_onu_action(string $action): bool
         if ($operation === 'rebootOp') {
             if (!empty($result['ok'])) redirect($destination);
             if (linnms_action_reason($result, '') === 'device_rejected') {
-                flash('error', 'Gagal melakukan reboot ONU. Perintah tidak dikonfirmasi oleh OLT.');
+                flash('error', toast_message('onu.reboot-rejected'));
                 redirect($destination);
             }
         }
         if (empty($result['ok'])) linnms_onu_action_feedback($result,
             in_array((string)linnms_action_reason($result, ''), ['not_found', 'forbidden'], true) ? '?page=onus' : $destination);
         if ($operation === 'deleteOp') {
-            flash('success', 'Berhasil menghapus ONU');
+            flash('success', toast_message('onu.deleted'));
             redirect('?page=onus');
         }
         $label = match ($operation) {
-            'activeOp' => 'Berhasil mengaktifkan ONU',
-            'noactiveOp' => 'Berhasil menonaktifkan ONU',
-            'restoreOp' => 'Berhasil memulihkan ONU',
-            default => 'Berhasil menjalankan tindakan ONU',
+            'activeOp' => toast_message('onu.enabled'),
+            'noactiveOp' => toast_message('onu.disabled'),
+            'restoreOp' => toast_message('onu.restored'),
+            default => toast_message('onu.action-complete'),
         };
         flash('success', $label);
         redirect($destination);
@@ -222,6 +223,6 @@ function handle_onu_action(string $action): bool
     $result = linnms_onu_action_request($uid, $action, $data);
     if (empty($result['ok'])) linnms_onu_action_feedback($result,
         in_array((string)linnms_action_reason($result, ''), ['not_found', 'forbidden'], true) ? '?page=onus' : $destination);
-    flash('success', 'Berhasil menghapus ONU');
+    flash('success', toast_message('onu.deleted'));
     redirect(!empty($result['data']['present_after']) ? $destination : '?page=onus');
 }

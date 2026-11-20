@@ -99,7 +99,7 @@ function flash(string $type, string $message): void
     if (in_array(strtolower($type), ['error', 'danger', 'critical'], true)
         && preg_match('/SQLSTATE|PDOException|Unknown column|(?:SQL|database) syntax|integrity constraint|foreign key constraint|duplicate entry/i', $message) === 1
     ) {
-        $message = 'Terjadi kesalahan saat menyimpan data. Coba lagi.';
+        $message = toast_message('save.failed');
     }
 
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];

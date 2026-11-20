@@ -154,7 +154,7 @@
         const response = await window.linnmsDashboardAjax.connectionStatus(ids);
         if (response.status === 401) { stopped = true; return; }
         const payload = await response.json();
-        if (!response.ok || payload.ok !== true) throw new Error('Status perangkat belum dapat dibaca.');
+        if (!response.ok || payload.ok !== true) throw new Error(window.linnmsToastMessage("js.dashboard.device-status"));
         await Promise.all(currentRows.map((row) => updateScanProgress(row)));
         const changed = currentRows.some((row) => {
           const state = payload.statuses?.[row.dataset.deviceRowId];
@@ -282,13 +282,13 @@
       responseStatus = response.status;
       if (response.status === 401) {
         stopped = true;
-        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', 'Sesi berakhir. Silakan login kembali untuk memuat aktivitas.');
+        if (typeof window.linnmsNotify === 'function') window.linnmsNotify('error', window.linnmsToastMessage("js.dashboard.activity-expired"));
         return;
       }
       const payload = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(payload?.message || `Request aktivitas gagal (HTTP ${response.status}).`);
+      if (!response.ok) throw new Error(payload?.message || window.linnmsToastMessage("js.dashboard.activity-http", {status: response.status}));
       if (!payload || payload.ok !== true) {
-        throw new Error(payload?.message || 'Respons aktivitas tidak valid.');
+        throw new Error(payload?.message || window.linnmsToastMessage("js.dashboard.activity-invalid"));
       }
       page = Math.max(1, Number(payload.activity_page || 1));
       if (applyPayload(payload) && resetScroll) resultsHost.scrollTop = 0;
@@ -326,11 +326,11 @@
         const response = await window.linnmsDashboardAjax.scanStatus(rowId);
         if (response.status === 401) {
           activeDiscoveryPolls.delete(rowId);
-          notifyDiscovery('error', 'Sesi berakhir. Silakan login kembali.');
+          notifyDiscovery('error', window.linnmsToastMessage("js.dashboard.session-expired"));
           return;
         }
         const result = await response.json();
-        if (!response.ok || result.ok !== true) throw new Error(result.message || 'Status sinkronisasi belum dapat dibaca.');
+        if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsToastMessage("js.dashboard.sync-status"));
         if (result.active) {
           const row = document.querySelector(`#devicesTable tr[data-device-row-id="${CSS.escape(String(rowId))}"]`);
           if (row) await updateScanProgress(row);
@@ -362,10 +362,10 @@
       try {
         const response = await window.linnmsDashboardAjax.syncDevice(deviceForm);
         const result = await response.json();
-        if (!response.ok || result.ok !== true) throw new Error(result.message || 'Sinkronisasi perangkat gagal.');
-        notifyDiscovery('success', result.message || 'Sinkronisasi perangkat berhasil.');
+        if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsToastMessage("live.device-sync-failed"));
+        notifyDiscovery('success', result.message || window.linnmsToastMessage("live.device-sync-ok"));
       } catch (error) {
-        notifyDiscovery('error', String(error?.message || 'Sinkronisasi perangkat gagal.'));
+        notifyDiscovery('error', String(error?.message || window.linnmsToastMessage("live.device-sync-failed")));
       } finally {
         button.disabled = false;
         button.removeAttribute('aria-busy');
@@ -385,10 +385,10 @@
       const response = await window.linnmsDashboardAjax.startDiscovery(discoveryForm);
       const result = await response.json();
       if (result.code === 'scan_cooldown') {
-        notifyDiscovery('info', 'Data sudah terupdate.');
+        notifyDiscovery('info', window.linnmsToastMessage("api-olt.current"));
         return;
       }
-      if (!response.ok || result.ok !== true) throw new Error(result.message || 'Sinkronisasi OLT gagal dimulai.');
+      if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsToastMessage("js.dashboard.scan-failed"));
       const row = discoveryForm.closest('tr');
       const time = row?.querySelector('.conn-time');
       if (time) {
@@ -403,7 +403,7 @@
       pollDiscovery(rowId);
       void load();
     } catch (error) {
-      notifyDiscovery('error', String(error?.message || 'Sinkronisasi OLT gagal dimulai.'));
+      notifyDiscovery('error', String(error?.message || window.linnmsToastMessage("js.dashboard.scan-failed")));
       void load();
     }
   });

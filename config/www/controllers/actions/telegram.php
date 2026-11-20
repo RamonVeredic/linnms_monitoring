@@ -25,7 +25,7 @@ function handle_telegram_action(string $action): bool
         $token = trim((string)($_POST['telegram_bot_token'] ?? ''));
         $chat = trim((string)($_POST['telegram_chat_id'] ?? ''));
         if ($chat !== '' && preg_match('/^-?\d{1,24}$/', $chat) !== 1) {
-            flash('error', 'Chat ID harus berupa angka');
+            flash('error', toast_message('telegram.chat-id-number'));
             redirect('?page=telegram');
         }
         $result = linnms_telegram_action_request($uid, $action, [
@@ -34,13 +34,14 @@ function handle_telegram_action(string $action): bool
         ]);
         $code = (string)linnms_action_reason($result, 'internal');
         if (!empty($result['ok'])) {
-            flash('success', 'Koneksi Telegram tersimpan');
-        } elseif ($code === 'unsupported') flash('warning', 'Telegram belum tersedia');
-        elseif ($code === 'token_required') flash('error', 'Token Bot wajib diisi');
-        elseif ($code === 'chat_invalid') flash('error', 'Chat ID harus berupa angka');
-        elseif ($code === 'device_auth_failed') flash('error', 'Token Bot tidak valid');
-        elseif ($code === 'device_rejected') flash('error', 'Bot Telegram tidak tersedia');
-        else flash('error', 'Koneksi Telegram gagal disimpan');
+            application_log_event($uid, 'Telegram', 'save_telegram_user_bot', 'success', linnms_log_message('success', 'telegram.connected'));
+            flash('success', toast_message('telegram.connected'));
+        } elseif ($code === 'unsupported') flash('warning', toast_message('telegram.unavailable'));
+        elseif ($code === 'token_required') flash('error', toast_message('telegram.token-required'));
+        elseif ($code === 'chat_invalid') flash('error', toast_message('telegram.chat-id-number'));
+        elseif ($code === 'device_auth_failed') flash('error', toast_message('telegram.token-invalid'));
+        elseif ($code === 'device_rejected') flash('error', toast_message('telegram.bot-unavailable'));
+        else flash('error', toast_message('telegram.connect-failed'));
         redirect('?page=telegram');
     }
 
@@ -53,9 +54,12 @@ function handle_telegram_action(string $action): bool
             if (array_key_exists($key, $_POST)) $data[$key] = $_POST[$key];
         }
         $result = linnms_telegram_action_request($uid, $action, $data);
-        if (linnms_action_reason($result, '') === 'unsupported') flash('warning', 'Telegram belum tersedia');
+        if (!empty($result['ok'])) {
+            application_log_event($uid, 'Telegram', 'save_telegram', 'success', linnms_log_message('success', 'telegram.settings-saved'));
+        }
+        if (linnms_action_reason($result, '') === 'unsupported') flash('warning', toast_message('telegram.unavailable'));
         else flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? 'Pengaturan notifikasi Telegram tersimpan' : 'Pengaturan notifikasi Telegram gagal disimpan');
+            ? toast_message('telegram.settings-saved') : toast_message('telegram.settings-failed'));
         redirect($returnPage);
     }
 
@@ -63,15 +67,18 @@ function handle_telegram_action(string $action): bool
         $enabled = (string)($_POST['telegram_enabled'] ?? '0') === '1';
         $result = linnms_telegram_action_request($uid, $action, ['telegram_enabled' => $enabled ? '1' : '0']);
         $unsupported = linnms_action_reason($result, '') === 'unsupported';
-        linnms_action_result(!empty($result['ok']), $unsupported ? 'Telegram belum tersedia'
-            : (!empty($result['ok']) ? ($enabled ? 'Notifikasi Telegram diaktifkan' : 'Notifikasi Telegram dimatikan')
-                : 'Notifikasi Telegram gagal diubah'), '?page=notif', $unsupported ? 'warning' : 'error');
+        linnms_action_result(!empty($result['ok']), $unsupported ? toast_message('telegram.unavailable')
+            : (!empty($result['ok']) ? ($enabled ? toast_message('telegram.enabled') : toast_message('telegram.disabled'))
+                : toast_message('telegram.toggle-failed')), '?page=notif', $unsupported ? 'warning' : 'error');
     }
 
     if ($action === 'telegram_disable') {
         $result = linnms_telegram_action_request($uid, $action, []);
+        if (!empty($result['ok'])) {
+            application_log_event($uid, 'Telegram', 'telegram_disable', 'success', linnms_log_message('success', 'telegram.disconnected'));
+        }
         flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok'])
-            ? 'Koneksi Telegram dihapus' : 'Koneksi Telegram gagal dihapus');
+            ? toast_message('telegram.disconnected') : toast_message('telegram.disconnect-failed'));
         redirect('?page=telegram');
     }
 
