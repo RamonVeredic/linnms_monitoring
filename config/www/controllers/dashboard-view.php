@@ -208,6 +208,7 @@ function dashboard_sync_state(bool $hasSynced, bool $pending, bool $failed, bool
         'failed' => $failed,
         'error' => $failed ? ($lastError !== '' ? $lastError : 'Sinkronisasi gagal') : '',
         'has_synced' => $hasSynced,
+        'seen_at' => $seenAt,
         'time' => $hasSynced ? dashboard_sync_time($seenAt) : '',
         'aria' => $pending ? ($activeScan ? 'Sinkronisasi OLT sedang berjalan' : 'Menunggu sinkronisasi pertama') : '',
         'progress' => max(0, min(100, $progress)),

@@ -99,8 +99,7 @@
   let pendingRefreshTimer = 0;
   const activeDiscoveryPolls = new Set();
 
-  const pendingDeviceRows = () => [...document.querySelectorAll('#devicesTable tr[data-device-row-id]')]
-    .filter((row) => row.querySelector('.conn-time.is-pending, .conn-time .danger, .conn-chip[data-connection-state="unknown"]'));
+  const deviceRows = () => [...document.querySelectorAll('#devicesTable tr[data-device-row-id]')];
 
   const setScanProgress = (time, percent, label) => {
     const value = Math.max(0, Math.min(100, Number.isFinite(Number(percent)) ? Number(percent) : 0));
@@ -123,11 +122,6 @@
     bar.setAttribute('aria-valuenow', String(next));
     if (label) bar.setAttribute('aria-label', label);
     if (label) time.setAttribute('aria-label', label);
-    const cell = time.closest('.conn-cell');
-    if (cell) {
-      cell.dataset.tip = window.linnmsToastMessage("olt.sync-progress");
-      cell.dataset.tipPos = 'bottom';
-    }
   };
 
   const updateScanProgress = async (row, scanId) => {
@@ -146,12 +140,12 @@
   };
 
   const scheduleDeviceRefresh = () => {
-    const rows = pendingDeviceRows();
+    const rows = deviceRows();
     if (rows.length === 0 || stopped) return;
     const delay = rows.some((row) => row.querySelector('.conn-time.is-pending')) ? 5000 : 15000;
     pendingRefreshTimer = window.setTimeout(async () => {
       pendingRefreshTimer = 0;
-      const currentRows = pendingDeviceRows();
+      const currentRows = deviceRows();
       const ids = currentRows.map((row) => row.dataset.deviceRowId).filter(Boolean);
       if (ids.length === 0) return;
       try {
@@ -163,12 +157,14 @@
         const changed = currentRows.some((row) => {
           const state = payload.statuses?.[row.dataset.deviceRowId];
           if (!state) return false;
+          if (state.seen_at !== row.dataset.syncSeenAt && !state.scan_active) return true;
           if (row.querySelector('.conn-time.is-pending')) {
             if (state.scan_active) return false;
             return state.scan_failed || state.seen || !['', 'Belum Sync'].includes(state.status);
           }
           if (row.querySelector('.conn-time .danger')) return state.scan_active || (!state.scan_failed && state.seen);
-          return !['', 'Belum Sync'].includes(state.status);
+          return state.scan_active || (row.querySelector('.conn-chip[data-connection-state="unknown"]')
+            && !['', 'Belum Sync'].includes(state.status));
         });
         if (changed) { void load(); return; }
       } catch (error) {
