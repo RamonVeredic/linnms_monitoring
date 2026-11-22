@@ -12,8 +12,16 @@ NGINX_FILES = {
     "nginx/worker_processes.conf", "nginx/php/php-local.ini",
     "nginx/php/www2.conf", "nginx/site-confs/default.conf",
 }
-CONFIG_FILES = {
+CONFIG_FILES_REQUIRED = {
+    "config/app/config/blocklist.json",
+    "config/app/config/config_default.php",
+    "config/app/config/database/migrate.php",
+    "config/app/config/defaults.php",
+    "config/app/default/error.txt",
+    "config/app/default/logs_velue.txt",
     "config/app/default/toats_message.txt",
+}
+CONFIG_FILES = CONFIG_FILES_REQUIRED | {
     "config/app/config/monitoring-drivers.php",
     "config/app/config/public-entry.php",
     "config/app/config/service.php",
@@ -30,7 +38,7 @@ WEB_SUFFIXES = {".php", ".html", ".css", ".js", ".ico", ".png", ".jpg", ".jpeg",
 RUNTIME_SUFFIXES = {".php", ".json"}
 FORBIDDEN_COMPONENTS = {".git", ".github", "docker", "doc", "tests", "test", "tools", "source-seed", "__pycache__"}
 FORBIDDEN_SUFFIXES = {".sample", ".bak", ".orig", ".log", ".tmp", ".temp"}
-REQUIRED = {
+REQUIRED = CONFIG_FILES_REQUIRED | {
     "config/app/runtime/app/paths.php",
     "config/app/runtime/backend/api.php",
     "config/www/entrypoints/index.php",
