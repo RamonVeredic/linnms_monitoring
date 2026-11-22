@@ -43,6 +43,13 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("linnms.init.d/50-linnms-public-init", INIT)
         self._write("config/app/runtime/app/paths.php", "<?php echo 1;")
         self._write("config/app/runtime/backend/api.php", "<?php echo 1;")
+        self._write("config/app/config/config_default.php", "<?php class LinnmsDefaults {}")
+        self._write("config/app/config/defaults.php", "<?php return [];")
+        self._write("config/app/config/database/migrate.php", "<?php exit(0);")
+        self._write("config/app/config/blocklist.json", "{}")
+        self._write("config/app/config/database.php", "PRIVATE_DB")
+        for name in ("error.txt", "logs_velue.txt", "toats_message.txt"):
+            self._write(f"config/app/default/{name}", "test.message=Example")
         self._write("config/www/entrypoints/index.php", "<?php echo 1;")
         self._write("nginx/nginx.conf", "user abc;")
         self._write("nginx/site-confs/default.conf", "root /config/www;")
@@ -76,6 +83,10 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertTrue((self.output / "config/app/runtime/app/example1.php").exists())
         self.assertTrue((self.output / "config/www/assets/pages/dashboard/assets.json").exists())
         self.assertTrue((self.output / "linnms.service.d/linnms-sampler-1").exists())
+        self.assertTrue((self.output / "config/app/config/config_default.php").is_file())
+        self.assertTrue((self.output / "config/app/config/defaults.php").is_file())
+        self.assertTrue((self.output / "config/app/config/database/migrate.php").is_file())
+        self.assertFalse((self.output / "config/app/config/database.php").exists())
 
     def test_staging_init_without_shebang(self):
         init_path = self.stage / 'linnms.init.d/50-linnms-public-init'
