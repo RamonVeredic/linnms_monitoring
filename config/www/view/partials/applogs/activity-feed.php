@@ -25,8 +25,7 @@ $feed = $feed ?? [];
         ? $username . ': ' . $message : $message;
     $badge = match ($level) {
         'warning' => ['label' => 'Peringatan', 'class' => 'warning'],
-        'error' => ['label' => 'Error', 'class' => 'danger'],
-        'critical' => ['label' => 'Kritikal', 'class' => 'danger'],
+        'error', 'critical' => ['label' => 'Error', 'class' => 'danger'],
         default => null,
     };
 ?>
@@ -34,7 +33,7 @@ $feed = $feed ?? [];
             <div class="public-log-message" data-log-expandable>
                 <?php if ($badge !== null): ?><span class="app-log-badge <?= h($badge['class']) ?>"><?= h($badge['label']) ?></span><?php endif; ?>
                 <span class="public-log-text" data-log-expand-text><?= h($logText) ?></span>
-                <button class="public-log-toggle" type="button" data-log-expand-toggle aria-label="Tampilkan log selengkapnya" title="Tampilkan selengkapnya" aria-expanded="false" hidden><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+                <button class="public-log-toggle" type="button" data-log-expand-toggle aria-label="Tampilkan log selengkapnya" aria-expanded="false" hidden><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
             </div>
             <time class="public-log-time"><?= h($entryTime) ?></time>
         </div>

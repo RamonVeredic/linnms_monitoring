@@ -136,7 +136,7 @@ $onuRowCapabilities = ['remote' => 'onu_remote_access', 'veip' => 'onu_veip', 't
                         <?php if ($canEditRows): ?><td class="onu-service-entry-actions">
                             <?php if ($canEditEntry): ?>
                                 <span class="onu-service-entry-controls">
-                                <button class="button secondary small" type="button" data-onu-modal-open="<?= h($onuRowModals[$previewSection['id']]) ?>" data-onu-row-edit="<?= h($previewSection['id']) ?>" data-onu-row-id="<?= h($previewRowId) ?>" aria-label="Edit <?= h($previewSection['title']) ?> <?= h($previewRowId) ?>" title="Edit <?= h($previewSection['title']) ?> <?= h($previewRowId) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                                <button class="button secondary small" type="button" data-onu-modal-open="<?= h($onuRowModals[$previewSection['id']]) ?>" data-onu-row-edit="<?= h($previewSection['id']) ?>" data-onu-row-id="<?= h($previewRowId) ?>" aria-label="Edit <?= h($previewSection['title']) ?> <?= h($previewRowId) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
                                 <button class="button button-danger small" type="button" data-onu-row-delete="<?= h($previewSection['id']) ?>" data-onu-row-id="<?= h($previewRowId) ?>" aria-label="Hapus <?= h($previewSection['title']) ?> <?= h($previewRowId) ?>"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                 </span>
                             <?php endif; ?>

@@ -107,10 +107,6 @@
   .table-search {
     flex-basis: 100%;
   }
-  .app-footer {
-    left: 0;
-    z-index: 50;
-  }
   .page-head p,
   .panel-heading p,
   .notice,

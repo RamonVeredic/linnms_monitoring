@@ -88,11 +88,11 @@
                         <a class="<?= nav_active($page, 'telegram') ?>" href="<?= h(public_page_url('telegram')) ?>">
                             <i class="bi bi-telegram" aria-hidden="true"></i>Telegram</a>
                     <?php elseif ($telegramSidebarAccessAllowed): ?>
-                        <span class="nav-disabled" aria-disabled="true" title="Belum tersedia">
+                        <span class="nav-disabled" aria-disabled="true">
                             <i class="bi bi-telegram" aria-hidden="true"></i>Telegram
                         </span>
                     <?php else: ?>
-                        <span class="nav-disabled nav-access-disabled" aria-disabled="true" title="Tidak diizinkan">
+                        <span class="nav-disabled nav-access-disabled" aria-disabled="true">
                             <i class="bi bi-telegram" aria-hidden="true"></i>Telegram
                             <span class="nav-lock-status"><i class="bi bi-lock-fill success" aria-hidden="true"></i></span>
                         </span>
@@ -101,11 +101,11 @@
                         <a class="<?= nav_active($page, 'whatsapp') ?>" href="<?= h(public_page_url('whatsapp')) ?>">
                             <i class="bi bi-whatsapp" aria-hidden="true"></i>WhatsApp</a>
                     <?php elseif ($whatsappSidebarAccessAllowed): ?>
-                        <span class="nav-disabled" aria-disabled="true" title="Belum tersedia">
+                        <span class="nav-disabled" aria-disabled="true">
                             <i class="bi bi-whatsapp" aria-hidden="true"></i>WhatsApp
                         </span>
                     <?php else: ?>
-                        <span class="nav-disabled nav-access-disabled" aria-disabled="true" title="Tidak diizinkan">
+                        <span class="nav-disabled nav-access-disabled" aria-disabled="true">
                             <i class="bi bi-whatsapp" aria-hidden="true"></i>WhatsApp
                             <span class="nav-lock-status"><i class="bi bi-lock-fill success" aria-hidden="true"></i></span>
                         </span>
@@ -159,46 +159,48 @@
                     </div>
                 </div>
             </header>
-            <div class="content">
-                <div class="page-head">
-                    <div>
-                        <p class="breadcrumb"><?= h($appName . ' / ' . $pageTitle) ?></p>
-                        <h1><?= h($pageTitle) ?></h1>
-                        <p><?= h($pageLead) ?></p>
-                    </div>
-                    <div class="page-actions"></div>
-                </div>
-                <div class="rule"></div>
-                <?php if (($serviceExpiryNotice ?? false) === true): ?>
-                    <aside
-                        class="service-expiry-notice"
-                        role="status"
-                        aria-label="Peringatan masa aktif layanan"
-                        data-service-expiry-notice="<?= h(date('Y-m-d', $serviceExpiresAt)) ?>"
-                    >
-                        <span class="service-expiry-notice-icon" aria-hidden="true">
-                            <i class="bi bi-calendar-event"></i>
-                        </span>
+            <div class="app-content-scroll" data-app-content-scroll role="region" aria-label="Konten halaman" tabindex="0">
+                <div class="content">
+                    <div class="page-head">
                         <div>
-                            <strong>Tinggal <?= (int)$serviceExpiryDaysRemaining ?> hari lagi</strong>
-                            <span>
-                                Masa aktif layanan akan jatuh tempo
-                                <b><?= h((string)$serviceExpiryDateLabel) ?></b>.
-                                Perpanjang sekarang sebelum layanan terputus.
-                            </span>
-                            <a class="service-expiry-pay" href="https://wa.me/<?= h($serviceWhatsapp) ?>" target="_blank" rel="noopener noreferrer">Perpanjang</a>
+                            <p class="breadcrumb"><?= h($appName . ' / ' . $pageTitle) ?></p>
+                            <h1><?= h($pageTitle) ?></h1>
+                            <p><?= h($pageLead) ?></p>
                         </div>
-                        <button
-                            class="service-expiry-notice-close"
-                            type="button"
-                            data-service-expiry-dismiss
-                            aria-label="Tutup informasi"
+                        <div class="page-actions"></div>
+                    </div>
+                    <div class="rule"></div>
+                    <?php if (($serviceExpiryNotice ?? false) === true): ?>
+                        <aside
+                            class="service-expiry-notice"
+                            role="status"
+                            aria-label="Peringatan masa aktif layanan"
+                            data-service-expiry-notice="<?= h(date('Y-m-d', $serviceExpiresAt)) ?>"
                         >
-                            <span class="service-expiry-close-glyph" aria-hidden="true">&times;</span>
-                        </button>
-                    </aside>
-                <?php endif; ?>
-                <?php require $pageView; ?>
+                            <span class="service-expiry-notice-icon" aria-hidden="true">
+                                <i class="bi bi-calendar-event"></i>
+                            </span>
+                            <div>
+                                <strong>Tinggal <?= (int)$serviceExpiryDaysRemaining ?> hari lagi</strong>
+                                <span>
+                                    Masa aktif layanan akan jatuh tempo
+                                    <b><?= h((string)$serviceExpiryDateLabel) ?></b>.
+                                    Perpanjang sekarang sebelum layanan terputus.
+                                </span>
+                                <a class="service-expiry-pay" href="https://wa.me/<?= h($serviceWhatsapp) ?>" target="_blank" rel="noopener noreferrer">Perpanjang</a>
+                            </div>
+                            <button
+                                class="service-expiry-notice-close"
+                                type="button"
+                                data-service-expiry-dismiss
+                                aria-label="Tutup informasi"
+                            >
+                                <span class="service-expiry-close-glyph" aria-hidden="true">&times;</span>
+                            </button>
+                        </aside>
+                    <?php endif; ?>
+                    <?php require $pageView; ?>
+                </div>
             </div>
             <?php render_flash_toast($flashes); ?>
             <footer class="app-footer" aria-label="APP Footer">

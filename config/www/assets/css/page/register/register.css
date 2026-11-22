@@ -39,6 +39,9 @@
   font-weight: 750;
   letter-spacing: 0.2em;
 }
+.registration-otp-field input::placeholder {
+  font-weight: 400;
+}
 .registration-field.is-tip-error input {
   border-color: var(--red);
   box-shadow: 0 0 0 3px rgba(240, 113, 120, 0.14);

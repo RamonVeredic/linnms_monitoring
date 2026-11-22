@@ -72,14 +72,14 @@ function notification_page_view_data(array $shell, bool $telegramAllowed, bool $
     $toggleLabels = [
         'notify_onu_signal' => 'RX Power', 'notify_onu_state' => 'Status ONU',
         'notify_device_status' => 'Device', 'notify_interface_changes' => 'Interface',
-        'notify_pppoe_status' => 'PPPoE', 'notify_onu_problem' => 'Bermasalah',
+        'notify_pon_fault' => 'PON Fault', 'notify_pppoe_status' => 'PPPoE', 'notify_onu_problem' => 'Bermasalah',
         'notify_onu_details' => 'Aktivitas ONU',
     ];
     $toggles = [];
     foreach ($toggleLabels as $key => $label) {
         $fallback = match ($key) {
             'notify_interface_changes' => $settings['notify_device_status'] ?? 1,
-            'notify_pppoe_status' => $settings['notify_interface_changes'] ?? $settings['notify_device_status'] ?? 1,
+            'notify_pon_fault', 'notify_pppoe_status' => $settings['notify_interface_changes'] ?? $settings['notify_device_status'] ?? 1,
             default => 1,
         };
         $toggles[] = ['key' => $key, 'label' => $label,

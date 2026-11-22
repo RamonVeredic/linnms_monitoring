@@ -22,7 +22,7 @@
                                     <div class="label-title">
                                         <label for="<?= h($field['id']) ?>"><?= h($field['label']) ?></label>
                                         <button class="icon-button settings-help-button" type="button" data-setting-help="<?= h($field['help']) ?>" aria-label="Bantuan <?= h($field['label']) ?>" aria-controls="settingsHelpTooltip" aria-expanded="false"><i class="bi bi-question-circle" aria-hidden="true"></i></button>
-                                        <button class="icon-button" type="button" data-setting-edit data-target="<?= h($field['id']) ?>" aria-controls="<?= h($field['id']) ?>" aria-pressed="false" data-setting-label="<?= h($field['label']) ?>" aria-label="Edit <?= h($field['label']) ?>" title="Edit <?= h($field['label']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                                        <button class="icon-button" type="button" data-setting-edit data-target="<?= h($field['id']) ?>" aria-controls="<?= h($field['id']) ?>" aria-pressed="false" data-setting-label="<?= h($field['label']) ?>" aria-label="Edit <?= h($field['label']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
                                         <button class="icon-button" type="button" data-setting-cancel data-target="<?= h($field['id']) ?>" hidden aria-label="Batal mengedit <?= h($field['label']) ?>"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
                                     </div>
                                 </div>

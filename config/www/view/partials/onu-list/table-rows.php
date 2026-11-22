@@ -75,8 +75,7 @@ $onus = $onus ?? [];
                     <span class="status-dot <?= h($stateDotClass) ?>"
                        
                         role="img"
-                        aria-label="Status: <?= h($stateDescription) ?>"
-                        title="<?= h($stateDescription) ?>">
+                        aria-label="Status: <?= h($stateDescription) ?>">
                         <span class="onu-visually-hidden"><?= h($stateDescription) ?></span>
                     </span>
                     <span><?= h($onuName) ?></span>
@@ -92,7 +91,7 @@ $onus = $onus ?? [];
                 </span>
             </td>
             <td>
-                <span class="signal <?= h(power_class($onuRxDisplay)) ?>"<?= $onuRxAvailable ? '' : ' role="img" aria-label="RX Power tidak terbaca" title="RX Power tidak terbaca"' ?>>
+                <span class="signal <?= h(power_class($onuRxDisplay)) ?>"<?= $onuRxAvailable ? '' : ' role="img" aria-label="RX Power tidak terbaca"' ?>>
                     <i class="bi <?= h(power_icon_class($onuRxDisplay)) ?>" aria-hidden="true"></i>
                     <?php if ($onuRxAvailable): ?><span><?= h($onuRxText) ?></span><?php endif; ?>
                 </span>

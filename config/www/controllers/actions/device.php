@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+function device_add_limit_message(string $reason, string $device): string
+{
+    return $reason === 'request_unavailable' ? toast_message('request.unavailable')
+        : toast_message('limit.account', ['device' => $device]);
+}
+
 function dispatch_device_action(string &$action): void
 {
     if ($action === 'add_device') {
@@ -109,7 +115,10 @@ function dispatch_device_action(string &$action): void
                 'ip_address' => trim((string)($_POST['ip_address'] ?? '')),
                 'snmp_port' => trim((string)($_POST['snmp_port'] ?? '161')),
             ];
-            flash('error', toast_message('device.add-failed', ['device' => $publicDeviceLabel]));
+            $reason = linnms_action_reason($created ?? []);
+            flash('error', in_array($reason, ['request_unavailable', 'account_limit'], true)
+                ? device_add_limit_message($reason, $publicDeviceLabel)
+                : toast_message('device.add-failed', ['device' => $publicDeviceLabel]));
             redirect($addPage);
         }
     }

@@ -9,6 +9,52 @@ function internal_api_signing_key(): string
     return $key;
 }
 
+function internal_api_critical_failure(string $message): never
+{
+    if (PHP_SAPI === 'cli') throw new RuntimeException($message);
+
+    $GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'] = true;
+    if (!headers_sent()) {
+        header_remove('Location');
+        http_response_code(500);
+        header('Cache-Control: no-store');
+        if (str_contains(strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json')) {
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['ok' => false, 'message' => $message], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo $message;
+    }
+    exit;
+}
+
+function internal_api_inactive_session(string $message): never
+{
+    if (PHP_SAPI === 'cli') throw new RuntimeException($message);
+
+    if (session_status() !== PHP_SESSION_ACTIVE && session_id() !== '' && !headers_sent()) {
+        session_start();
+    }
+    $acceptsJson = str_contains(strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json');
+    if (($_SERVER['SCRIPT_NAME'] ?? '') === '/index.php' && !$acceptsJson
+        && function_exists('redirect_invalid_session_to_login') && !headers_sent()) {
+        redirect_invalid_session_to_login();
+    }
+    $_SESSION = [];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_regenerate_id(true);
+        session_write_close();
+    }
+    if (!headers_sent()) {
+        http_response_code(401);
+        header('Cache-Control: no-store');
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'message' => $message], JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
 function internal_api_request(int $userId, string $resource, array $params = [], int $timeoutSeconds = 10): array
 {
     if ($userId < 0 || ($userId === 0 && !in_array($resource, ['auth.guest', 'guest.page.read', 'app.log.write', 'app.entry.read', 'app.entry.action', 'app.bootstrap.read'], true))) {
@@ -56,6 +102,12 @@ function internal_api_request(int $userId, string $resource, array $params = [],
 
     $payload = json_decode($response, true);
     if (!is_array($payload)) throw new RuntimeException('Respons API internal tidak valid.');
+    if (($payload['error']['code'] ?? '') === 'session_inactive') {
+        internal_api_inactive_session((string)$payload['error']['message']);
+    }
+    if (($payload['error']['code'] ?? '') === 'database_unavailable') {
+        internal_api_critical_failure((string)$payload['error']['message']);
+    }
     if (($payload['ok'] ?? false) !== true) {
         throw new RuntimeException((string)($payload['error']['message'] ?? 'Permintaan API internal gagal.'));
     }

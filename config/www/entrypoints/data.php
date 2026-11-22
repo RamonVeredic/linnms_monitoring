@@ -133,7 +133,9 @@ if ($type === 'olt-scan-status') {
     if ($scanRowId < 1) {
         $respondError('validation');
     }
-    $response = data_snapshot_read_result($userId, ['type' => $type, 'olt_row_id' => $scanRowId]);
+    $response = data_snapshot_read_result($userId, [
+        'type' => $type, 'olt_row_id' => $scanRowId, 'scan_id' => (int)($_GET['scan_id'] ?? 0),
+    ]);
     $respond($response['payload'], $response['status']);
 }
 

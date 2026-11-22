@@ -122,7 +122,6 @@
       editButton.querySelector('i')?.classList.replace('bi-floppy', 'bi-pencil');
       const label = `Edit ${editButton.dataset.settingLabel || ''}`.trim();
       editButton.setAttribute('aria-label', label);
-      editButton.title = label;
       if (focusButton) editButton.focus();
     }
     if (cancelButton) cancelButton.hidden = true;
@@ -168,7 +167,6 @@
     editButton.querySelector('i')?.classList.replace('bi-pencil', 'bi-floppy');
     const label = `Simpan ${editButton.dataset.settingLabel || ''}`.trim();
     editButton.setAttribute('aria-label', label);
-    editButton.title = label;
     if (cancelButton) cancelButton.hidden = false;
     window.requestAnimationFrame(() => {
       control.focus();

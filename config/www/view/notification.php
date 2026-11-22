@@ -49,7 +49,7 @@
                             <div class="label">
                                 <span class="label-title">
                                     <label for="<?= h($threshold['id']) ?>"><?= h($threshold['label']) ?></label>
-                                    <button class="icon-button" type="button" data-notification-edit data-target="<?= h($threshold['id']) ?>" aria-controls="<?= h($threshold['id']) ?>" aria-pressed="false" data-notification-label="<?= h($threshold['label']) ?>" aria-label="Edit <?= h($threshold['label']) ?>" title="Edit <?= h($threshold['label']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                                    <button class="icon-button" type="button" data-notification-edit data-target="<?= h($threshold['id']) ?>" aria-controls="<?= h($threshold['id']) ?>" aria-pressed="false" data-notification-label="<?= h($threshold['label']) ?>" aria-label="Edit <?= h($threshold['label']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
                                     <button class="icon-button" type="button" data-notification-cancel data-target="<?= h($threshold['id']) ?>" hidden aria-label="Batal mengedit <?= h($threshold['label']) ?>"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
                                 </span>
                             </div>

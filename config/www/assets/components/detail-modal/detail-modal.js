@@ -68,11 +68,11 @@
     },
     m = {
       device: ["Jenis", "Alamat", "Model", "Info", "Status"],
-      online_onus: ["Serial ONU", "OLT", "Indeks", "RX Power"],
-      down_onus: ["Serial ONU", "OLT", "Indeks"],
-      loss_onus: ["Serial ONU", "OLT", "Indeks"],
-      power_down_onus: ["Serial ONU", "OLT", "Indeks", "RX Power"],
-      problem_onus: ["Serial ONU", "OLT", "Indeks", "RX Power", "Note"],
+      online_onus: ["OLT", "Indeks", "Nama ONU", "Serial ONU", "RX Power"],
+      down_onus: ["OLT", "Indeks", "Nama ONU", "Serial ONU"],
+      loss_onus: ["OLT", "Indeks", "Nama ONU", "Serial ONU"],
+      power_down_onus: ["OLT", "Indeks", "Nama ONU", "Serial ONU", "RX Power"],
+      problem_onus: ["OLT", "Indeks", "Nama ONU", "Serial ONU", "RX Power", "Note"],
     },
     p = [...document.querySelectorAll("[data-dashboard-detail]")];
   let b = "",
@@ -119,7 +119,7 @@
         t.classList.add("dashboard-detail-onu-table");
         if (b === "problem_onus") t.classList.add("dashboard-detail-problem-table");
         const columns = document.createElement("colgroup");
-        const columnNames = ["serial", "olt", "index", "rx", "note"];
+        const columnNames = ["olt", "index", "name", "serial", "rx", "note"];
         labels.forEach((_, index) => {
           const column = document.createElement("col");
           column.className = `dashboard-detail-onu-col-${columnNames[index]}`;
@@ -234,8 +234,7 @@
     $ = () => {
       const e = s.selectedOptions[0]?.textContent || "Semua Perangkat";
       (l.classList.toggle("is-filtered", "" !== s.value),
-        (l.title = `Filter perangkat: ${e}`),
-        l.querySelector(".select-button")?.setAttribute("aria-label", l.title));
+        l.querySelector(".select-button")?.setAttribute("aria-label", `Filter perangkat: ${e}`));
     },
     D = () => {
       if (0 === f.length) return;
@@ -350,9 +349,10 @@
             s.append(r, o),
             i.append(s),
             a.append(
-              i,
               L(String(t.olt || "")),
               L(String(t.index || ""), "mono dashboard-detail-onu-index"),
+              L(String(t.name || "—"), "dashboard-detail-name-cell"),
+              i,
             ),
             !["down_onus", "loss_onus"].includes(b))
           ) {

@@ -14,7 +14,7 @@ function application_log_event(?int $userId, string $area, string $action, strin
     if ($writing) return;
     $writing = true;
     try {
-        internal_api_request(max(0, (int)$userId), 'app.log.write', [
+        $result = internal_api_request(max(0, (int)$userId), 'app.log.write', [
             'area' => $area,
             'action' => $action,
             'level' => $level,
@@ -23,8 +23,10 @@ function application_log_event(?int $userId, string $area, string $action, strin
             'actor' => $actor,
             'ip_address' => $ipAddress ?? (string)($_SERVER['REMOTE_ADDR'] ?? ''),
         ], 3);
+        if (($result['written'] ?? false) !== true) throw new RuntimeException('Penyimpanan log tidak dikonfirmasi.');
     } catch (Throwable $error) {
-        error_log('[LINNMS] Log API: ' . $error->getMessage());
+        error_log('[LINNMS] [CRITICAL] Log API: ' . $error->getMessage());
+        internal_api_critical_failure(linnms_log_message('error', 'app.database-unavailable'));
     } finally {
         $writing = false;
     }
@@ -36,9 +38,9 @@ function application_log_error(Throwable $error, string $action = 'application_e
     $fingerprint = get_class($error) . '|' . $error->getMessage() . '|' . $error->getFile() . '|' . $error->getLine();
     if (isset($fingerprints[$fingerprint])) return;
     $fingerprints[$fingerprint] = true;
-    application_log_event(current_user_id() ?: null, $level === 'critical' ? 'System' : 'LINNMS APP', $action, $level, (string)$error,
+    application_log_event(current_user_id() ?: null, 'LINNMS APP', $action, $level, (string)$error,
         [], current_username() ?: null);
-    if (in_array($level, ['error', 'critical'], true)) $GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'] = true;
+    if ($level === 'error') $GLOBALS['LINNMS_ORIGINAL_ERROR_LOGGED'] = true;
 }
 
 function register_application_error_logging(): void
@@ -48,7 +50,6 @@ function register_application_error_logging(): void
         $level = match ($severity) {
             E_NOTICE, E_USER_NOTICE, E_DEPRECATED, E_USER_DEPRECATED, E_STRICT => 'info',
             E_WARNING, E_USER_WARNING => 'warning',
-            E_USER_ERROR, E_RECOVERABLE_ERROR => 'critical',
             default => 'error',
         };
         application_log_error(new ErrorException($message, 0, $severity, $file, $line), 'php_error', $level);
@@ -65,8 +66,8 @@ function register_application_error_logging(): void
             return;
         }
         application_log_error(new ErrorException(
-            (string)($fatal['message'] ?? linnms_log_message('critical', 'app.unknown-fatal')), 0, (int)$fatal['type'],
+            (string)($fatal['message'] ?? linnms_log_message('error', 'app.unknown-fatal')), 0, (int)$fatal['type'],
             (string)($fatal['file'] ?? ''), (int)($fatal['line'] ?? 0)
-        ), 'php_fatal_error', 'critical');
+        ), 'php_fatal_error');
     });
 }

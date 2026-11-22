@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+const ONU_LIST_PAGE_SIZES = [50, 100, 500, 1000];
+
 function onu_list_filters_from_request(): array
 {
     $status = strtolower(trim((string)($_GET['status'] ?? '')));
@@ -18,7 +20,11 @@ function onu_list_filters_from_request(): array
     $pon = trim((string)($_GET['pon'] ?? ''));
     $pon = function_exists('mb_substr') ? mb_substr($pon, 0, 120) : substr($pon, 0, 120);
 
+    $perPage = filter_var($_GET['per'] ?? null, FILTER_VALIDATE_INT);
+    if (!in_array($perPage, ONU_LIST_PAGE_SIZES, true)) $perPage = ONU_LIST_PAGE_SIZES[0];
+
     return [
+        'per' => $perPage,
         'olt' => $olt,
         'source' => function_exists('valid_olt_source') ? valid_olt_source($_GET['source'] ?? null) : null,
         'pon' => $pon,
@@ -35,6 +41,8 @@ function onu_list_filter_url(array $filters, int $page = 1): string
         'pon' => trim((string)($filters['pon'] ?? '')) !== '' ? (string)$filters['pon'] : null,
         'status' => trim((string)($filters['status'] ?? '')) !== '' ? (string)$filters['status'] : null,
         'q' => trim((string)($filters['q'] ?? '')) !== '' ? (string)$filters['q'] : null,
+        'source' => $filters['source'] ?? null,
+        'per' => ($filters['per'] ?? ONU_LIST_PAGE_SIZES[0]) !== ONU_LIST_PAGE_SIZES[0] ? $filters['per'] : null,
         'p' => $page > 1 ? $page : null,
     ], static fn($v): bool => $v !== null && $v !== '');
     return public_page_url('onus', $params);

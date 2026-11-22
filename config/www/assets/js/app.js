@@ -166,7 +166,6 @@
               t = !e || "" === e.value;
             ((r.textContent =
               t && "" !== b ? b : e ? e.textContent.trim() : ""),
-              (r.title = e ? e.textContent.trim() : r.textContent),
               (r.style.color =
                 f || !t ? "var(--text-primary)" : "var(--text-muted)"),
               l.classList.toggle("is-placeholder", t));
@@ -210,8 +209,7 @@
             const d = document.createElement("span");
             "" !== l &&
               ((d.className = "select-option-meta"),
-              (d.textContent = l),
-              (d.title = l));
+              (d.textContent = l));
             const u = f ? [i] : [];
             ("" !== o && u.push(r),
               u.push(s),
@@ -221,7 +219,6 @@
               (a.dataset.search = (e.dataset.search || `${s.textContent} ${l}`)
                 .trim()
                 .toLowerCase()),
-              (a.title = "" !== l ? `${s.textContent} — ${l}` : s.textContent),
               (a.disabled = e.disabled || Boolean(e.parentElement?.disabled)),
               a.addEventListener("click", () =>
                 ((e) => {
@@ -295,7 +292,6 @@
                 const t = document.createElement("div");
                 ((t.className = ["select-group", ...e.classList].join(" ")),
                   (t.textContent = e.label),
-                  (t.title = e.label),
                   optionsWrap.append(t),
                   Array.from(e.children).forEach((e) => E(e)));
               } else e instanceof HTMLOptionElement && E(e);
@@ -567,8 +563,7 @@
         const n = a.querySelector("[data-log-expand-toggle]");
         (n &&
           ((n.innerHTML = '<i class="bi-chevron-down" aria-hidden="true"></i>'),
-          n.setAttribute("aria-label", "Tampilkan log selengkapnya"),
-          n.setAttribute("title", "Tampilkan selengkapnya")),
+          n.setAttribute("aria-label", "Tampilkan log selengkapnya")),
           t(a),
           "ResizeObserver" in window &&
             new ResizeObserver(() => t(a)).observe(a));
@@ -598,7 +593,6 @@
                 "aria-label",
                 n ? "Tutup detail log" : "Tampilkan log selengkapnya",
               ),
-              a.setAttribute("title", n ? "Tutup" : "Tampilkan selengkapnya"),
               n || t(e));
           })(i));
     }),

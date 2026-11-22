@@ -8,6 +8,41 @@
   width: auto;
   min-width: 0;
 }
+.onu-list-toolbar .onu-page-size {
+  flex: 0 0 102px;
+  width: 102px;
+}
+.onu-page-size > :is(select, .select) {
+  width: 100%;
+}
+.onu-page-size .select-chevron {
+  display: none;
+}
+.onu-page-size select,
+.onu-page-size .select-value,
+.onu-page-size-menu .select-option-text {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+}
+.onu-batch-feedback {
+  position: sticky;
+  inset-inline-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+}
+.onu-batch-feedback .onu-loading-badge {
+  width: 34px;
+  height: 34px;
+}
+.onu-batch-feedback .onu-loading-badge > .sync-loading-spinner:not([hidden]) {
+  font-size: 17px;
+}
+.onu-batch-feedback[hidden],
+.onu-batch-feedback > [hidden] {
+  display: none;
+}
 .table-toolbar.onu-list-toolbar > .left > .table-search {
   flex: 1 1 auto;
   width: 100%;
@@ -17,6 +52,7 @@
 }
 .table-toolbar.onu-list-toolbar > .right {
   display: flex;
+  justify-content: flex-end;
   width: auto;
   min-width: 0;
   flex-wrap: nowrap;
@@ -31,16 +67,16 @@
   height: 38px;
   min-height: 38px;
 }
-.onu-list-toolbar > .right .select-button {
+.onu-list-toolbar > .right > .select .select-button {
   justify-content: center;
   padding: 0;
 }
-.onu-list-toolbar > .right .select-icon {
+.onu-list-toolbar > .right > .select .select-icon {
   margin: 0;
   font-size: 20px;
 }
-.onu-list-toolbar > .right .select-value,
-.onu-list-toolbar > .right .select-chevron {
+.onu-list-toolbar > .right > .select .select-value,
+.onu-list-toolbar > .right > .select .select-chevron {
   display: none;
 }
 .onu-table-row {
@@ -78,6 +114,14 @@
 .onu-table-head {
   overflow: hidden;
   scrollbar-gutter: stable;
+  background: var(--tint-blue);
+  box-shadow:
+    inset 0 1px rgba(91, 141, 239, 0.22),
+    inset 0 -1px rgba(91, 141, 239, 0.34);
+}
+#onusTableHeader th {
+  background: transparent;
+  border-block-color: transparent;
 }
 .onu-list-panel .list-scroll-viewport {
   height: 420px;
@@ -86,7 +130,8 @@
   scrollbar-gutter: stable;
 }
 :is(#onusTable, #onusTableHeader) {
-  min-width: 950px;
+  width: 100%;
+  min-width: 900px;
   table-layout: fixed;
 }
 #onusTable .onu-table-accessible-head {
@@ -101,29 +146,90 @@
   height: 42px;
 }
 :is(#onusTable, #onusTableHeader) .onu-col-olt {
-  width: 120px;
+  width: 112px;
 }
 :is(#onusTable, #onusTableHeader) .onu-col-index {
-  width: 78px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  width: calc(12ch + 20px);
 }
 :is(#onusTable, #onusTableHeader) .onu-col-name {
   width: 22%;
 }
 :is(#onusTable, #onusTableHeader) .onu-col-serial {
-  width: 190px;
+  width: 176px;
 }
 :is(#onusTable, #onusTableHeader) .onu-col-rx {
-  width: 124px;
+  width: 116px;
 }
-:is(#onusTable, #onusTableHeader):is(th, td):nth-child(1),
-:is(#onusTable, #onusTableHeader):is(th, td):nth-child(2),
-:is(#onusTable, #onusTableHeader):is(th, td):nth-child(5),
-:is(#onusTable, #onusTableHeader):is(th, td):nth-child(6) {
+@media (min-width: 800px) {
+  :is(#onusTable, #onusTableHeader) {
+    min-width: 0;
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-olt {
+    width: 11%;
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-name {
+    width: 18%;
+  }
+  :is(#onusTable, #onusTableHeader) :is(.onu-col-serial, .onu-col-rx) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-serial {
+    width: min(24%, calc(17ch + 38px));
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-rx {
+    width: min(16%, calc(11ch + 28px));
+  }
+  .onu-table-serial .serial-copy > [data-serial-value] {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (min-width: 1100px) {
+  :is(#onusTable, #onusTableHeader) .onu-col-olt {
+    width: 104px;
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-name {
+    width: 180px;
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-serial {
+    width: calc(17ch + 38px);
+  }
+  :is(#onusTable, #onusTableHeader) .onu-col-rx {
+    width: calc(11ch + 28px);
+  }
+}
+:is(#onusTable, #onusTableHeader) :is(th, td):nth-child(1),
+:is(#onusTable, #onusTableHeader) :is(th, td):nth-child(2),
+:is(#onusTable, #onusTableHeader) :is(th, td):nth-child(4),
+:is(#onusTable, #onusTableHeader) th:is(:nth-child(5), :nth-child(6)) {
   padding-inline: 10px;
+}
+#onusTable td:nth-child(5) {
+  padding-inline: 8px 3px;
+  text-align: right;
+}
+#onusTable td:nth-child(6) {
+  padding-inline: 2px 10px;
+  text-align: right;
+}
+#onusTable td:nth-child(6) .signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+:is(#onusTable, #onusTableHeader) th:nth-child(3) {
+  padding-inline-start: 12px;
 }
 #onusTable td:nth-child(1) {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+#onusTable td:nth-child(2) {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 #onusTable td:nth-child(5) {
   overflow: visible;
@@ -276,20 +382,20 @@ html.js
   > select[data-table-filter] {
   visibility: hidden;
 }
-.onu-list-panel .table-filter-toolbar > .right .select.is-gh .select-button {
+.onu-list-panel .table-filter-toolbar > .right > .select.is-gh .select-button {
   text-align: left;
 }
-.onu-list-panel .table-filter-toolbar > .right .select.is-gh .select-value {
+.onu-list-panel .table-filter-toolbar > .right > .select.is-gh .select-value {
   padding-inline: 0;
   text-align: left;
 }
-.onu-list-panel .table-filter-toolbar > .right .select.is-gh .select-chevron {
+.onu-list-panel .table-filter-toolbar > .right > .select.is-gh .select-chevron {
   position: static;
   margin-left: auto;
 }
 @media (max-width: 799px) {
   .onu-list-panel .table-filter-toolbar {
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
   .onu-list-panel .table-filter-toolbar > .left {

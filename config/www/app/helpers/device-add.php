@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 function device_add_view_model(array $pageShell): array
 {
-    $oltQuota = (array)($pageShell['olt_quota'] ?? []);
-    $mikrotikQuota = (array)($pageShell['mikrotik_quota'] ?? []);
-    $switchQuota = (array)($pageShell['switch_quota'] ?? []);
     $oltDriverSupportFlags = (array)($pageShell['olt_driver_flags'] ?? []);
     $apiOltTypeSupportFlags = (array)($pageShell['api_olt_type_flags'] ?? []);
     $snmpDriverSupportFlags = (array)($pageShell['snmp_driver_flags'] ?? []);
@@ -28,19 +25,14 @@ function device_add_view_model(array $pageShell): array
     $deviceAddSelectedDefinition = monitoring_driver_definition($deviceAddSelectedDriverId);
     $deviceAddCommunityDefault = trim((string)($deviceAddSelectedDefinition['default_snmp_community'] ?? 'public'));
     if ($deviceAddCommunityDefault === '') $deviceAddCommunityDefault = 'public';
-    $deviceAddQuotaByGroup = [
-        'olt' => !empty($oltQuota['can_add']),
-        'router' => !empty($mikrotikQuota['can_add']),
-        'switch' => !empty($switchQuota['can_add']),
-    ];
     $deviceAddGroups = [];
-    foreach ($deviceAddQuotaByGroup as $group => $quotaAllowed) {
+    foreach (['olt', 'router', 'switch'] as $group) {
         $deviceAddGroups[$group] = ['label' => strtoupper($group), 'rows' => []];
     }
     $deviceAddUnavailable = [];
     foreach ($deviceDriverCatalog as $driverId => $definition) {
         $group = (string)($definition['group'] ?? '');
-        if (!array_key_exists($group, $deviceAddQuotaByGroup)) continue;
+        if (!array_key_exists($group, $deviceAddGroups)) continue;
         if ((string)($definition['handler'] ?? '') === 'external_api') {
             foreach ($apiOltTypeOptions as $apiType => $apiLabel) {
                 $key = 'api_olt_type:' . $apiType;
@@ -49,7 +41,6 @@ function device_add_view_model(array $pageShell): array
                     'key' => $key,
                     'definition' => ['label' => $apiLabel, 'group' => $group, 'method' => 'api'],
                     'enabled' => $enabled,
-                    'quota_allowed' => $deviceAddQuotaByGroup[$group],
                     'access_locked' => !device_access_allows($key),
                 ];
                 if ($enabled && !$row['access_locked']) $deviceAddGroups[$group]['rows'][] = $row;
@@ -64,7 +55,6 @@ function device_add_view_model(array $pageShell): array
             'key' => (string)$driverId,
             'definition' => $definition,
             'enabled' => $enabled,
-            'quota_allowed' => $deviceAddQuotaByGroup[$group],
             'access_locked' => !device_access_allows((string)$driverId),
         ];
         if ($enabled && !$row['access_locked']) $deviceAddGroups[$group]['rows'][] = $row;

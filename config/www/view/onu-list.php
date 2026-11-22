@@ -18,7 +18,7 @@ $onuPonOptions = array_values(array_filter(is_array($onuList['pon_options'] ?? n
 ));
 ?>
 <div class="stats summary-stats onu-summary-stats">
-    <div class="stat-card accent-teal">
+    <div class="stat-card accent-teal onu-total-card">
         <span class="text-cyan">Total ONU</span>
         <strong data-onu-stat="total"><?= $totalOnus ?></strong>
     </div>
@@ -113,6 +113,13 @@ $onuPonOptions = array_values(array_filter(is_array($onuList['pon_options'] ?? n
                 <option data-icon="bi bi-exclamation-triangle" data-api-value="loss">Lost</option>
                 <option data-icon="bi bi-exclamation-octagon" data-api-value="problem">Bermasalah</option>
             </select>
+            <div class="onu-page-size">
+                <select data-onu-page-size data-select-icon="bi bi-list-ol" data-select-menu-class="onu-page-size-menu" aria-label="Jumlah ONU per halaman">
+                    <?php foreach (ONU_LIST_PAGE_SIZES as $pageSize): ?>
+                        <option value="<?= $pageSize ?>"<?= $pageSize === $onuList['per'] ? ' selected' : '' ?>><?= $pageSize ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -139,7 +146,7 @@ $onuPonOptions = array_values(array_filter(is_array($onuList['pon_options'] ?? n
         </table>
     </div>
     <div class="table-wrap list-scroll-viewport" role="region" aria-label="Daftar ONU" tabindex="0">
-        <table data-onu-server-search id="onusTable" data-table-page-size="50" data-table-item-label="ONU">
+        <table data-onu-server-search id="onusTable" data-table-page-size="<?= (int)$onuList['per'] ?>" data-onu-page="<?= (int)$onuList['page'] ?>" data-onu-next-offset="<?= (int)$onuList['next_offset'] ?>" data-onu-has-more="<?= $onuList['has_more'] ? '1' : '0' ?>" data-table-item-label="ONU">
             <colgroup>
                 <col class="onu-col-olt">
                 <col class="onu-col-index">
@@ -155,6 +162,13 @@ $onuPonOptions = array_values(array_filter(is_array($onuList['pon_options'] ?? n
                 <?php require __DIR__ . '/partials/onu-list/table-rows.php'; ?>
             </tbody>
         </table>
+        <div class="onu-batch-feedback" data-onu-batch-feedback hidden>
+            <span class="onu-loading-badge" data-onu-batch-spinner aria-hidden="true">
+                <i class="bi bi-arrow-repeat sync-loading-spinner"></i>
+            </span>
+            <span class="onu-visually-hidden" data-onu-batch-message role="status"></span>
+            <button type="button" class="button secondary small" data-onu-batch-retry hidden>Coba lagi</button>
+        </div>
     </div>
 
     <div class="table-footer onu-table-footer" data-table-footer="onusTable">

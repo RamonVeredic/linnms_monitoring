@@ -101,8 +101,8 @@ function data_snapshot_read_result(int $userId, array $params): array
             . ($count > 0 ? ' · ' . $count . ' ONU' : '');
         $payload['completion_level'] = (string)($payload['status'] ?? '') === 'done' ? 'success' : 'error';
         $payload['completion_message'] = $payload['completion_level'] === 'success'
-            ? 'Fast, Middle, dan Low Sync OLT selesai.'
-            : 'Sinkronisasi OLT gagal. Periksa log aplikasi untuk detailnya.';
+            ? toast_message('olt.scan-done')
+            : toast_message('olt.scan-failed');
         unset($payload['last_error']);
     }
     if ($ok && $type === 'onu-ethernet-port') {
@@ -430,7 +430,9 @@ function recent_activity_result(int $userId, array $query): array
                 (array)($dashboardDevices['olt'] ?? []),
                 (array)($dashboardDevices['mikrotik'] ?? []),
                 (array)($dashboardDevices['switch'] ?? []),
-                (array)($dashboardRead['scan'] ?? [])
+                (array)($dashboardRead['scan'] ?? []),
+                (int)($dashboardRead['settings']['sync_interval_seconds'] ?? 0),
+                (array)($dashboardRead['settings']['scheduled_sync'] ?? [])
             );
             $dashboardDeviceRowCount = count($dashboardDeviceRows);
 

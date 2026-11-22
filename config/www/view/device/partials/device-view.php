@@ -281,7 +281,7 @@ require __DIR__ . '/device-overview.php';
                             <td class="mono interface-rate-value is-rx" data-interface-rx><?= h($formatRate($interfaceRate['rx_bps']??null)) ?></td>
                             <td class="mono interface-rate-value is-tx" data-interface-tx><?= h($formatRate($interfaceRate['tx_bps']??null)) ?></td>
                             <td class="interface-record-cell">
-                                <label class="pon-catat-switch" title="Simpan riwayat trafik interface ini">
+                                <label class="pon-catat-switch">
                                     <input type="checkbox" role="switch" class="toggle-switch" data-traffic-record
                                            data-device-id="<?= (int)($deviceDetail['id'] ?? 0) ?>"
                                            data-if-ref="<?= h($interfaceName) ?>"

@@ -44,6 +44,7 @@ function linnms_registration_result_message(string $code, int $waitSeconds = 0):
 {
     return match ($code) {
         'unavailable' => toast_message('auth.signup-unavailable'),
+        'request_unavailable' => toast_message('request.unavailable'),
         'rate_limited' => 'Terlalu banyak percobaan pendaftaran dari jaringan ini. Coba lagi dalam '
             . (int)ceil(max(1, $waitSeconds) / 60) . ' menit.',
         'guard_honeypot' => toast_message('auth.signup-rejected'),
@@ -112,10 +113,10 @@ function handle_auth_action(string $action): bool
                 'rate_limited' => linnms_log_message('warning', 'auth.login-limited'),
                 'repeated_failure' => linnms_log_message('warning', 'auth.login-repeated'),
                 'invalid_credentials' => linnms_log_message('info', 'auth.login-invalid'),
-                default => linnms_log_message('critical', 'auth.login-unavailable'),
+                default => linnms_log_message('error', 'auth.login-unavailable'),
             };
-            $level = $rateLimited || $repeatedFailure ? 'warning' : ($code === 'invalid_credentials' ? 'info' : 'critical');
-            log_login_result($username, $message, $level, $level === 'critical' ? 'System' : 'Keamanan');
+            $level = $rateLimited || $repeatedFailure ? 'warning' : ($code === 'invalid_credentials' ? 'info' : 'error');
+            log_login_result($username, $message, $level, $level === 'error' ? 'System' : 'Keamanan');
             flash('error', toast_message('auth.credentials-invalid'));
             redirect('?page=login');
         }
@@ -266,7 +267,8 @@ function handle_auth_action(string $action): bool
         $_SESSION['old_register'] = ['username' => $username, 'display_name' => $displayName, 'phone_number' => $phoneInput];
         $message = $code === 'phone_invalid' ? toast_message('auth.whatsapp-invalid')
             : ($rateLimited ? 'Terlalu banyak permintaan kode untuk nomor ini.'
-                : ($code === 'session_incomplete' ? toast_message('auth.signup-incomplete') : toast_message('auth.otp-send-failed')));
+                : (in_array($code, ['session_incomplete', 'request_unavailable'], true)
+                    ? linnms_registration_result_message($code) : toast_message('auth.otp-send-failed')));
         if ($code === 'phone_invalid') $_SESSION['register_validation'] = ['field' => 'phone_number', 'message' => $message];
         if (linnms_registration_async_request()) linnms_registration_reply([
             'ok' => false, 'message' => $message, 'field' => $code === 'phone_invalid' ? 'phone_number' : '',
@@ -313,8 +315,7 @@ function handle_auth_action(string $action): bool
         redirect('?page=login');
     }
     $message = $code === 'username_invalid' ? toast_message('auth.username-unavailable')
-        : ($code === 'code_invalid' ? linnms_registration_result_message('code_invalid')
-            : toast_message('auth.signup-failed'));
+        : linnms_registration_result_message($code);
     if ($code === 'username_invalid') {
         $_SESSION['old_register'] = [
             'username' => (string)($pending['username'] ?? ''),

@@ -123,13 +123,17 @@
     bar.setAttribute('aria-valuenow', String(next));
     if (label) bar.setAttribute('aria-label', label);
     if (label) time.setAttribute('aria-label', label);
-    time.closest('.conn-cell')?.setAttribute('title', label || 'Sinkronisasi OLT sedang berjalan');
+    const cell = time.closest('.conn-cell');
+    if (cell) {
+      cell.dataset.tip = window.linnmsToastMessage("olt.sync-progress");
+      cell.dataset.tipPos = 'bottom';
+    }
   };
 
-  const updateScanProgress = async (row) => {
+  const updateScanProgress = async (row, scanId) => {
     const time = row.querySelector('.conn-time.is-pending');
     if (!time || !row.querySelector('[data-dashboard-discovery]')) return;
-    const response = await window.linnmsDashboardAjax.scanStatus(row.dataset.deviceRowId || '');
+    const response = await window.linnmsDashboardAjax.scanStatus(row.dataset.deviceRowId || '', scanId);
     if (!response.ok) return;
     const result = await response.json();
     if (result.ok !== true) return;
@@ -318,12 +322,12 @@
     if (typeof window.linnmsNotify === 'function') window.linnmsNotify(type, message);
   };
 
-  const pollDiscovery = (rowId) => {
+  const pollDiscovery = (rowId, scanId) => {
     if (activeDiscoveryPolls.has(rowId)) return;
     activeDiscoveryPolls.add(rowId);
     const check = async () => {
       try {
-        const response = await window.linnmsDashboardAjax.scanStatus(rowId);
+        const response = await window.linnmsDashboardAjax.scanStatus(rowId, scanId);
         if (response.status === 401) {
           activeDiscoveryPolls.delete(rowId);
           notifyDiscovery('error', window.linnmsToastMessage("js.dashboard.session-expired"));
@@ -331,14 +335,19 @@
         }
         const result = await response.json();
         if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsToastMessage("js.dashboard.sync-status"));
+        if (String(result.scan_id ?? '') !== String(scanId)) {
+          activeDiscoveryPolls.delete(rowId);
+          void load();
+          return;
+        }
         if (result.active) {
           const row = document.querySelector(`#devicesTable tr[data-device-row-id="${CSS.escape(String(rowId))}"]`);
-          if (row) await updateScanProgress(row);
+          if (row) await updateScanProgress(row, scanId);
           window.setTimeout(check, 4000);
           return;
         }
         activeDiscoveryPolls.delete(rowId);
-        notifyDiscovery(result.completion_level || 'error', result.completion_message || 'Sinkronisasi OLT selesai.');
+        if (result.completion_message) notifyDiscovery(result.completion_level || 'error', result.completion_message);
         void load();
       } catch (error) {
         console.error(error);
@@ -388,7 +397,7 @@
         notifyDiscovery('info', window.linnmsToastMessage("api-olt.current"));
         return;
       }
-      if (!response.ok || result.ok !== true) throw new Error(result.message || window.linnmsToastMessage("js.dashboard.scan-failed"));
+      if (!response.ok || result.ok !== true || !result.scan_id) throw new Error(result.message || window.linnmsToastMessage("js.dashboard.scan-failed"));
       const row = discoveryForm.closest('tr');
       const time = row?.querySelector('.conn-time');
       if (time) {
@@ -400,7 +409,7 @@
       row?.querySelector('.conn-chips')?.remove();
       const button = discoveryForm.querySelector('button[type="submit"]');
       if (button instanceof HTMLButtonElement) button.disabled = true;
-      pollDiscovery(rowId);
+      pollDiscovery(rowId, result.scan_id);
       void load();
     } catch (error) {
       notifyDiscovery('error', String(error?.message || window.linnmsToastMessage("js.dashboard.scan-failed")));

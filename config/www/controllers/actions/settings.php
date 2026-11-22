@@ -34,7 +34,7 @@ function handle_settings_action(string $action): bool
         $returnPage = action_return_page($_POST['return_page'] ?? '', '?page=notif', ['notification', 'alerts']);
         $data = [];
         foreach (['notify_onu_state', 'notify_onu_signal', 'notify_onu_problem', 'notify_onu_details',
-            'notify_device_status', 'notify_interface_changes', 'notify_pppoe_status',
+            'notify_device_status', 'notify_interface_changes', 'notify_pon_fault', 'notify_pppoe_status',
             'signal_threshold_dbm', 'problem_threshold'] as $key) {
             if (array_key_exists($key, $_POST)) $data[$key] = $_POST[$key];
         }
@@ -54,6 +54,7 @@ function handle_settings_action(string $action): bool
             'notify_onu_state' => ['Status ONU', 'toggle'],
             'notify_device_status' => ['Device', 'toggle'],
             'notify_interface_changes' => ['Interface', 'toggle'],
+            'notify_pon_fault' => ['PON Fault', 'toggle'],
             'notify_pppoe_status' => ['PPPoE', 'toggle'],
             'notify_onu_problem' => ['Bermasalah', 'toggle'],
             'notify_onu_details' => ['Aktivitas ONU', 'toggle'],

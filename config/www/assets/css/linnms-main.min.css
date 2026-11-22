@@ -128,8 +128,13 @@ button.is-loading > i {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
+body:has(> .app-shell) {
+  overflow: hidden;
+  padding-bottom: 0;
+}
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
 }
@@ -142,7 +147,6 @@ button.is-loading > i {
   display: flex;
   flex-direction: column;
   z-index: 30;
-  padding-bottom: var(--footer-height);
 }
 .brand {
   height: var(--app-bar-height);
@@ -304,11 +308,25 @@ button.is-loading > i {
   font-weight: 700 !important;
   white-space: nowrap;
 }
-.container {
+.app-shell > .container {
   grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
+}
+.app-content-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+body:is(.sidebar-open, .dashboard-detail-open, .device-add-modal-open, .settings-modal-open,
+  .channel-credential-modal-open, .olt-modal-open, .olt-pon-modal-open, .onu-modal-open) .app-content-scroll {
+  overflow: hidden;
 }
 .topbar {
+  flex: 0 0 var(--app-bar-height);
   height: var(--app-bar-height);
   min-height: var(--app-bar-height);
   max-height: var(--app-bar-height);
@@ -1498,11 +1516,7 @@ input.toggle-switch:disabled {
   }
 }
 .app-footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 31;
+  flex: 0 0 var(--footer-height);
   height: var(--footer-height);
   min-height: var(--footer-height);
   display: flex;
@@ -1957,7 +1971,7 @@ textarea:focus-visible,
 }
 .table-panel,
 .recent-activity-panel {
-  scroll-margin-top: calc(var(--app-bar-height) + 10px);
+  scroll-margin-top: 10px;
 }
 .table-pagination {
   display: inline-flex;
@@ -1977,8 +1991,8 @@ textarea:focus-visible,
 }
 .table-page-button:disabled,
 .table-page-button.disabled {
-  background: transparent;
-  border-color: var(--bg-line-soft);
+  background: var(--surface-deep);
+  border-color: var(--bg-line);
   color: var(--text-muted);
   opacity: 1;
   box-shadow: none;
@@ -2605,12 +2619,14 @@ fieldset {
 .recent-activity-pagination small {
   color: var(--text-muted);
 }
-button {
+button,
+.onu-summary-stats .onu-total-card {
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease;
 }
-button:hover {
+button:hover,
+.onu-summary-stats .onu-total-card:hover {
   transform: translateY(-2px) scale(1.01);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
 }

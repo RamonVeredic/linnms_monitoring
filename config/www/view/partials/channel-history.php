@@ -29,7 +29,7 @@
             <div class="public-log-entry" data-log-row>
                 <div class="public-log-message" data-log-expandable>
                     <div class="public-log-text" data-log-expand-text><?php if ($deviceName !== ''): ?><span class="text-cyan"><?= h($deviceName) ?></span> <?php endif; ?><?= h($detail) ?><?php if ($statusMeta !== null): ?> <span class="public-log-status <?= h($statusMeta['class']) ?>"><?= h($statusMeta['label']) ?></span><?php endif; ?></div>
-                    <button class="public-log-toggle" type="button" data-log-expand-toggle aria-label="Tampilkan pesan selengkapnya" title="Tampilkan selengkapnya" aria-expanded="false" hidden><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+                    <button class="public-log-toggle" type="button" data-log-expand-toggle aria-label="Tampilkan pesan selengkapnya" aria-expanded="false" hidden><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                 </div>
                 <time class="public-log-time" datetime="<?= h($notificationTime) ?>"><?= h(format_feed_time($notificationTime)) ?></time>
             </div>

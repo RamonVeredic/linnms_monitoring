@@ -212,7 +212,7 @@ if ($dashboardRead !== null) {
 $accountQuotaClaims = [];
 if (in_array($page, ['settings', 'settings-admin'], true)) {
     $accountAccessState = $serviceAccessState;
-    $accountQuotaClaims = (array)($accountAccessState['claims']['quota'] ?? []);
+    $accountQuotaClaims = (array)($accountAccessState['claims']['limits'] ?? []);
 }
 $profileServiceLimits = in_array($page, ['settings', 'settings-admin'], true) ? [
     'olt' => is_admin() ? (int)($accountQuotaClaims['q1'] ?? $oltQuota['limit']) : (int)$oltQuota['user_limit'],

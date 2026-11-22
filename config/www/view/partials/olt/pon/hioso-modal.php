@@ -63,8 +63,8 @@ $ponInterfaceLabel = olt_pon_interface_label(
                     <div class="olt-field field-input">
                         <div class="onu-info-label-row">
                             <label for="<?= h($ponModalId) ?>-description">Description</label>
-                            <button class="onu-field-edit-button" type="button" data-olt-pon-edit data-edit-label="deskripsi" aria-label="Edit deskripsi" title="Edit deskripsi"><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                            <button class="onu-field-edit-button" type="button" data-olt-pon-cancel aria-label="Batal edit deskripsi" title="Batal edit deskripsi" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                            <button class="onu-field-edit-button" type="button" data-olt-pon-edit data-edit-label="deskripsi" aria-label="Edit deskripsi"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                            <button class="onu-field-edit-button" type="button" data-olt-pon-cancel aria-label="Batal edit deskripsi" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
                         </div>
                         <div>
                             <span data-olt-pon-edit-display><?= h($ponDescription !== '' ? $ponDescription : '—') ?></span>

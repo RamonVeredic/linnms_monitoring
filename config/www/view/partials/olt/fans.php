@@ -16,7 +16,7 @@ $oltFans = is_array($oltFans ?? null) ? array_values(array_filter($oltFans, 'is_
         ?>
             <div class="olt-fan-item <?= $status === 'online' ? 'is-online' : ($status === 'offline' ? 'is-offline' : '') ?><?= $fanSpinning ? ' is-spinning' : '' ?>">
                 <span class="olt-fan-name"><span class="olt-fan-icon" aria-hidden="true"><img src="<?= h(asset_url('assets/img/fan.png')) ?>" alt=""></span> Fan <?= h((string)($oltFan['fan_unit_id'] ?? 'N/A')) ?></span>
-                <span class="olt-fan-status <?= $status === 'online' ? 'is-online' : ($status === 'offline' ? 'is-offline' : '') ?>" aria-label="<?= h($label) ?>" title="<?= h($label) ?>"><i class="bi bi-circle-fill" aria-hidden="true"></i></span>
+                <span class="olt-fan-status <?= $status === 'online' ? 'is-online' : ($status === 'offline' ? 'is-offline' : '') ?>" aria-label="<?= h($label) ?>"><i class="bi bi-circle-fill" aria-hidden="true"></i></span>
                 <span class="olt-fan-reading">
                     <strong class="olt-fan-rpm mono"><?= h(is_numeric($oltFan['rpm'] ?? null) ? number_format((float)$oltFan['rpm'], 0, ',', '.') . ' RPM' : ' - ') ?></strong><span class="olt-fan-level">Lv <?= h((string)($rawLevel ?? ' - ')) ?></span> 
             

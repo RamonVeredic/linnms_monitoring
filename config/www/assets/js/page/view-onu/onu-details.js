@@ -127,7 +127,6 @@
       if (label) label.textContent = 'Edit';
       if (button.dataset.editLabel) {
         button.setAttribute('aria-label', button.dataset.editLabel);
-        button.title = button.dataset.editLabel;
       }
     });
     form.querySelectorAll('[data-onu-field-cancel]').forEach((cancel) => {
@@ -158,7 +157,6 @@
     button.classList.add('is-active');
     button.setAttribute('aria-pressed', 'true');
     button.setAttribute('aria-label', 'Simpan perubahan');
-    button.title = 'Simpan perubahan';
     button.querySelector('i')?.classList.replace('bi-pencil', 'bi-floppy');
     const label = button.querySelector('span');
     if (label) label.textContent = 'Save';

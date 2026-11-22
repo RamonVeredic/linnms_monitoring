@@ -52,7 +52,7 @@ function dashboard_read_data(int $userId, array $query): array
     $switch = is_array($devices['switch'] ?? null) ? $devices['switch'] : [];
     $scan = is_array($data['scan'] ?? null) ? $data['scan'] : [];
     $activity = is_array($data['activity'] ?? null) ? $data['activity'] : [];
-    $quota = is_array($data['quota'] ?? null) ? $data['quota'] : [];
+    $limits = is_array($data['limits'] ?? null) ? $data['limits'] : [];
     $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
     $activitySearch = trim((string)($activity['search'] ?? ''));
     $activityDevice = trim((string)($activity['device'] ?? ''));
@@ -72,7 +72,11 @@ function dashboard_read_data(int $userId, array $query): array
         if ($activityDevice !== '') $params['activity_device'] = $activityDevice;
         return public_page_url('dashboard', $params);
     };
-    $deviceRows = dashboard_device_table_rows($olts, $mikrotik, $switch, $scan);
+    $deviceRows = dashboard_device_table_rows(
+        $olts, $mikrotik, $switch, $scan,
+        (int)($data['settings']['sync_interval_seconds'] ?? 0),
+        (array)($data['settings']['scheduled_sync'] ?? [])
+    );
     $activityPage = max(1, (int)($activity['page'] ?? 1));
     $activityPages = max(1, (int)($activity['pages'] ?? 1));
 
@@ -84,9 +88,9 @@ function dashboard_read_data(int $userId, array $query): array
         'mikrotikDevices' => $mikrotik,
         'switchDevices' => $switch,
         'settings' => is_array($data['settings'] ?? null) ? $data['settings'] : [],
-        'oltQuota' => is_array($quota['olt'] ?? null) ? $quota['olt'] : [],
-        'mikrotikQuota' => is_array($quota['mikrotik'] ?? null) ? $quota['mikrotik'] : [],
-        'switchQuota' => is_array($quota['switch'] ?? null) ? $quota['switch'] : [],
+        'oltQuota' => is_array($limits['olt'] ?? null) ? $limits['olt'] : [],
+        'mikrotikQuota' => is_array($limits['mikrotik'] ?? null) ? $limits['mikrotik'] : [],
+        'switchQuota' => is_array($limits['switch'] ?? null) ? $limits['switch'] : [],
         'activeOltScanRows' => array_fill_keys(array_map('intval', (array)($scan['active_olt_row_ids'] ?? [])), true),
         'latestOltScanStatuses' => is_array($scan['latest_statuses'] ?? null) ? $scan['latest_statuses'] : [],
         'recentEvents' => dashboard_recent_activity_rows(is_array($activity['events'] ?? null) ? $activity['events'] : []),

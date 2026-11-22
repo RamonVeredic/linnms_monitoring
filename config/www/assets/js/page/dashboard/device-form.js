@@ -195,11 +195,7 @@
               const o = t.options[t.selectedIndex],
                 c = o?.dataset.method || "",
                 u = "1" === o?.dataset.telnetCli,
-                m = Boolean(
-                  o?.value &&
-                  "1" === o.dataset.enabled &&
-                  "1" === o.dataset.quotaAllowed,
-                );
+                m = Boolean(o?.value && "1" === o.dataset.enabled);
               if (s) {
                 const label = o?.textContent.trim() || "",
                   tip =

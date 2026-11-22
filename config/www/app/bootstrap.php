@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/paths.php';
+require_once __DIR__ . '/helpers/browser-request.php';
+linnms_require_browser_request();
 require_once dirname(LINNMS_UI_ROOT) . '/app/config/session.php';
 linnms_session_start();
 require_once __DIR__ . '/helpers.php';

@@ -85,12 +85,8 @@ function handle_api_action(string $action): bool
             unset($_SESSION['old_olt']['community'], $_SESSION['old_olt']['password'], $_SESSION['old_olt']['csrf']);
         }
         $code = (string)linnms_action_reason($result, 'internal');
-        if ($code === 'quota') {
-            $quota = is_array($result['data'] ?? null) ? $result['data'] : [];
-            $scope = ($quota['blocked_by'] ?? '') === 'q' ? 'keseluruhan' : 'akun';
-            $used = $scope === 'keseluruhan' ? (int)($quota['used'] ?? 0) : (int)($quota['user_used'] ?? 0);
-            $limit = $scope === 'keseluruhan' ? (int)($quota['limit'] ?? 0) : (int)($quota['user_limit'] ?? 0);
-            flash('error', toast_message('api-olt.quota-reached', ['scope' => $scope, 'used' => $used, 'limit' => $limit]));
+        if (in_array($code, ['request_unavailable', 'account_limit'], true)) {
+            flash('error', device_add_limit_message($code, 'OLT'));
         } elseif ($code === 'api_unavailable') {
             flash('error', toast_message('api-olt.account-unavailable'));
             redirect(public_settings_url());

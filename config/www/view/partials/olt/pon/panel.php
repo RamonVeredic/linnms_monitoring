@@ -79,7 +79,7 @@ $oltPonModalPartial = $oltPonIsZte ? 'zte-modal.php' : ($oltPonIsExternal ? 'ext
                                 ?>
                                 <article class="config-card olt-pon-card <?= h($stateClass) ?><?= $ponIsFocused ? ' is-focused' : '' ?>" id="pon-<?= h($ponKey) ?>">
                                     <?php if ($ponNumber > 0 && !isset($oltLegacyUsed[$ponNumber])): $oltLegacyUsed[$ponNumber] = true; ?><span class="olt-pon-anchor" id="pon-<?= $ponNumber ?>" aria-hidden="true"></span><?php endif; ?>
-                                    <button type="button" class="olt-pon-card-head" title="<?= h($ponDisplayLabel . ' · ' . $state . ($ponDescription !== '' ? ' · ' . $ponDescription : '')) ?>" data-olt-pon-modal-open="<?= h($ponModalId) ?>" aria-haspopup="dialog" aria-controls="<?= h($ponModalId) ?>">
+                                    <button type="button" class="olt-pon-card-head" data-olt-pon-modal-open="<?= h($ponModalId) ?>" aria-haspopup="dialog" aria-controls="<?= h($ponModalId) ?>">
                                             <span class="olt-port-icon"><i class="bi bi-ethernet" aria-hidden="true"></i><span class="olt-port-badge"><?= h($ponNumber > 0 ? (string)$ponNumber : '?') ?></span></span>
                                             <span class="olt-port-path"><?= h($ponDisplayLabel) ?></span>
                                     </button>
@@ -137,7 +137,7 @@ $oltPonModalPartial = $oltPonIsZte ? 'zte-modal.php' : ($oltPonIsExternal ? 'ext
                                     $oltIsUplinkPort = $oltPonIsZte && $oltPortName !== '' && array_key_exists($oltPortName, $oltUplinkState);
                                     ?>
                                     <?php if ($oltPonUsesCardLayout): ?>
-                                        <article class="config-card olt-pon-card <?= h($oltPortClass) ?>" title="Port <?= h($oltPortName) ?> — <?= h($oltPortState) ?>"<?= ($oltPonIsZte && ($oltOtherRole === 'uplink' || $oltIsUplinkPort)) ? ' data-olt-uplink-open="' . h($oltPortName) . '" data-olt-uplink-modal-id="oltUplinkModal" role="button" tabindex="0"' : '' ?>>
+                                        <article class="config-card olt-pon-card <?= h($oltPortClass) ?>"<?= ($oltPonIsZte && ($oltOtherRole === 'uplink' || $oltIsUplinkPort)) ? ' data-olt-uplink-open="' . h($oltPortName) . '" data-olt-uplink-modal-id="oltUplinkModal" role="button" tabindex="0"' : '' ?>>
                                             <div class="olt-pon-card-head">
                                                 <span class="olt-port-icon"><i class="bi bi-ethernet" aria-hidden="true"></i><span class="olt-port-badge"><?= h($oltPortNo !== null ? (string)$oltPortNo : '?') ?></span></span>
                                                 <span class="olt-port-speed"><?= h($oltPortSpeed !== '' ? $oltPortSpeed : 'N/A') ?></span>
@@ -146,7 +146,7 @@ $oltPonModalPartial = $oltPonIsZte ? 'zte-modal.php' : ($oltPonIsExternal ? 'ext
                                         </article>
                                     <?php else: ?>
                                         <?php $oltNetworkModalId = 'olt-network-modal-' . (int)$oltOtherSlot . '-' . preg_replace('/[^a-z0-9]+/i', '-', $oltPortName); ?>
-                                        <button type="button" class="config-card olt-pon-card <?= h($oltPortClass) ?>" title="Port <?= h($oltPortName) ?> — <?= h($oltPortState) ?>"<?= $oltOtherRole === 'uplink' ? ' data-olt-pon-modal-open="' . h($oltNetworkModalId) . '" aria-haspopup="dialog"' : '' ?>>
+                                        <button type="button" class="config-card olt-pon-card <?= h($oltPortClass) ?>"<?= $oltOtherRole === 'uplink' ? ' data-olt-pon-modal-open="' . h($oltNetworkModalId) . '" aria-haspopup="dialog"' : '' ?>>
                                             <div class="olt-pon-card-head">
                                                 <span class="olt-port-icon"><i class="bi bi-ethernet" aria-hidden="true"></i><span class="olt-port-badge"><?= h($oltPortNo !== null ? (string)$oltPortNo : '?') ?></span></span>
                                                 <span class="olt-port-speed"><?= h($oltPortSpeed !== '' ? $oltPortSpeed : 'N/A') ?></span>

@@ -86,8 +86,7 @@ function handle_olt_action(string $action): bool
             'password_required' => validation_required_message('Password'),
             'driver_invalid' => toast_message('olt.driver-unsupported'),
             'driver_disabled' => toast_message('olt.driver-disabled'),
-            'quota_total' => toast_message('olt.total-limit'),
-            'quota_user' => toast_message('olt.user-limit'),
+            'request_unavailable', 'account_limit' => device_add_limit_message($code, 'OLT'),
             default => linnms_action_code_message($result, toast_message('olt.add-failed')),
         };
         flash('error', $message);

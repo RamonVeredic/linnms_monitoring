@@ -24,16 +24,29 @@
 
 (() => {
   'use strict';
-  const table = document.querySelector('[data-onu-server-search]');
+  const panel = document.querySelector('.onu-list-panel');
+  const table = panel?.querySelector('[data-onu-server-search]');
   const search = document.querySelector('[data-table-search="onusTable"]');
   if (!table || !search) return;
+  const pageSize = document.querySelector('[data-onu-page-size]');
   const body = table.tBodies[0];
   const footer = document.querySelector('[data-table-footer="onusTable"]');
+  const batchFeedback = document.querySelector('[data-onu-batch-feedback]');
+  const batchMessage = batchFeedback.querySelector('[data-onu-batch-message]');
+  const batchSpinner = batchFeedback.querySelector('[data-onu-batch-spinner]');
+  const batchRetry = batchFeedback.querySelector('[data-onu-batch-retry]');
   const filters = [...document.querySelectorAll('[data-table-filter="onusTable"]')];
   let timer, controller, sequence = 0;
+  let currentPage = Number(table.dataset.onuPage) || 1;
+  let nextOffset = Number(table.dataset.onuNextOffset) || 0;
+  let hasMore = table.dataset.onuHasMore === '1';
+  let loading = false;
+  let canReuseRows = true;
+  let activeFilters;
   const area = table.closest('.table-wrap');
+  let previousScrollTop = area.scrollTop;
+  let batchFailed = false;
   const header = document.querySelector('[data-onu-table-head]');
-  area.addEventListener('scroll', () => { if (header) header.scrollLeft = area.scrollLeft; }, { passive: true });
   const host = document.createElement('div');
   host.className = 'onu-search-host onu-search-table-host';
   area.before(host);
@@ -79,29 +92,88 @@
     table.setAttribute('aria-busy', 'false');
     if (footer) footer.inert = false;
   };
-  const load = async (page = 1, searching = false) => {
-    const id = ++sequence;
-    controller?.abort();
-    controller = new AbortController();
-    table.setAttribute('aria-busy', 'true');
-    if (searching) status('Memuat data ONU...', true);
-    else clearStatus();
-
+  const hideBatchFeedback = () => {
+    batchFeedback.hidden = true;
+    batchMessage.textContent = '';
+  };
+  const showBatchFeedback = (failed = false) => {
+    batchSpinner.hidden = failed;
+    batchRetry.hidden = !failed;
+    batchFeedback.hidden = false;
+    batchMessage.textContent = failed ? 'Gagal memuat ONU berikutnya.' : 'Memuat ONU berikutnya…';
+  };
+  const requestFilters = () => {
     const term = search.value.trim();
-    const params = { p: page, q: [...term].length >= 2 ? term : '' };
+    const params = { q: [...term].length >= 2 ? term : '' };
     const names = ['olt', 'pon', 'status'];
-    filters.forEach((filter, index) => { params[names[index]] = index === 2 ? (filter.selectedOptions[0]?.dataset.apiValue || '') : filter.value; });
+    filters.forEach((filter, index) => {
+      params[names[index]] = index === 2 ? (filter.selectedOptions[0]?.dataset.apiValue || '') : filter.value;
+    });
     const source = new URL(location.href).searchParams.get('source');
     if (source) params.source = source;
+    return params;
+  };
+  const load = async (page = 1, searching = false, append = false, reuse = false) => {
+    if (append && (loading || !hasMore)) return;
+    if (append) {
+      batchFailed = false;
+      showBatchFeedback();
+      area.scrollTop = area.scrollHeight - area.clientHeight;
+    } else {
+      hasMore = false;
+      if (!reuse) canReuseRows = false;
+      batchFailed = false;
+      hideBatchFeedback();
+    }
+    const id = ++sequence;
+    loading = true;
+    controller?.abort();
+    controller = new AbortController();
+    if (searching) status('Memuat data ONU...', true);
+    else if (!append) clearStatus();
+    table.setAttribute('aria-busy', 'true');
+
+    const query = (append || reuse) ? activeFilters : requestFilters();
+    const params = { ...query, p: page };
+    if (pageSize) params.per = pageSize.value;
+    if (append || reuse) params.offset = nextOffset;
+    if (reuse) params.metadata = '1';
     try {
+      const request = window.linnmsOnusAjax.load(params, controller.signal);
       const [response] = await Promise.all([
-        window.linnmsOnusAjax.load(params, controller.signal),
-        new Promise(resolve => setTimeout(resolve, 250)),
+        request,
+        searching || append ? new Promise(resolve => setTimeout(resolve, 250)) : null,
       ]);
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.message || 'Gagal memuat data ONU.');
       if (id !== sequence) return;
-      body.innerHTML = data.rows_html || '';
+      if (append && Number(data.page) !== page) {
+        hasMore = false;
+        hideBatchFeedback();
+        return;
+      }
+      currentPage = Number(data.page) || 1;
+      nextOffset = Number(data.next_offset) || 0;
+      hasMore = data.has_more === true;
+      if (append) {
+        const scrollTop = area.scrollTop;
+        body.insertAdjacentHTML('beforeend', data.rows_html || '');
+        if (area.scrollTop !== scrollTop) area.scrollTop = scrollTop;
+        previousScrollTop = scrollTop;
+        hideBatchFeedback();
+        return;
+      }
+      if (reuse) {
+        if (nextOffset > 0 || data.total > 0) {
+          while (body.rows.length > nextOffset) body.deleteRow(-1);
+        }
+      } else {
+        body.innerHTML = data.rows_html || '';
+        activeFilters = query;
+        canReuseRows = true;
+      }
+      if (!reuse) area.scrollTop = 0;
+      previousScrollTop = area.scrollTop;
       clearStatus();
       if (footer) {
         footer.innerHTML = data.pagination_html;
@@ -109,14 +181,39 @@
       }
 
     } catch (error) {
-      if (id === sequence && error.name !== 'AbortError') status('Gagal memuat data ONU. Ketik ulang atau ubah filter untuk mencoba lagi.');
+      if (id === sequence && error.name !== 'AbortError') {
+        if (append) {
+          batchFailed = true;
+          showBatchFeedback(true);
+        } else {
+          status('Gagal memuat data ONU. Ketik ulang atau ubah filter untuk mencoba lagi.');
+        }
+      }
     } finally {
-      if (id === sequence) table.setAttribute('aria-busy', 'false');
+      if (id === sequence) {
+        loading = false;
+        table.setAttribute('aria-busy', 'false');
+      }
     }
   };
+  area.addEventListener('scroll', () => {
+    if (header) header.scrollLeft = area.scrollLeft;
+    const scrollTop = area.scrollTop;
+    const movingDown = scrollTop > previousScrollTop;
+    previousScrollTop = scrollTop;
+    if (!movingDown || loading || batchFailed || !hasMore) return;
+
+    if (area.scrollHeight - scrollTop - area.clientHeight <= 2) {
+      load(currentPage, false, true);
+    }
+  }, { passive: true });
+  batchRetry.addEventListener('click', () => load(currentPage, false, true));
   search.addEventListener('input', () => {
     clearTimeout(timer);
     ++sequence;
+    canReuseRows = false;
+    loading = true;
+    hideBatchFeedback();
     controller?.abort();
     table.setAttribute('aria-busy', 'true');
     status('Memuat data ONU...', true);
@@ -124,12 +221,22 @@
     timer = setTimeout(() => load(1, true), 200);
   });
   filters.forEach(filter => filter.addEventListener('change', () => { clearTimeout(timer); load(1, true); }));
+  pageSize?.addEventListener('change', () => {
+    clearTimeout(timer);
+    const url = new URL(location.href);
+    if (pageSize.selectedIndex === 0) url.searchParams.delete('per');
+    else url.searchParams.set('per', pageSize.value);
+    url.searchParams.delete('p');
+    history.replaceState(history.state, '', url);
+    const reuse = currentPage === 1 && canReuseRows;
+    load(1, !reuse, false, reuse);
+  });
   footer?.addEventListener('click', event => {
     const button = event.target.closest('[data-onu-goto]');
     if (!button) return;
     event.preventDefault();
     clearTimeout(timer);
-    load(Number(button.dataset.onuGoto) || 1);
+    load(Number(button.dataset.onuGoto) || 1, true);
   });
   const initial = new URL(location.href);
   search.value = initial.searchParams.get('q') || '';
@@ -140,5 +247,5 @@
       ? ([...filter.options].find((option) => option.dataset.apiValue === value)?.value || '')
       : value;
   });
-
+  activeFilters = { ...requestFilters(), q: search.value.trim() };
 })();

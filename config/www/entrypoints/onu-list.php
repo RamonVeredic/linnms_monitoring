@@ -33,11 +33,15 @@ session_write_close();
 try {
     $filters = onu_list_filters_from_request();
     $pageNo = max(1, (int)($_GET['p'] ?? 1));
-    $list = onu_list_read_data($userId, $filters, $pageNo);
+    $offset = filter_var($_GET['offset'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+    $metadataOnly = ($_GET['metadata'] ?? '') === '1';
+    $list = onu_list_read_data($userId, $filters, $pageNo, false, $offset === false ? 0 : $offset, $metadataOnly);
     $onus = $list['rows'];
 
     ob_start();
-    require project_path('view', 'partials', 'onu-list', 'table-rows.php');
+    if (!$metadataOnly && ($list['rows'] !== [] || !$offset)) {
+        require project_path('view', 'partials', 'onu-list', 'table-rows.php');
+    }
     $rowsHtml = (string)ob_get_clean();
 
     ob_start();
@@ -60,6 +64,8 @@ try {
         'total' => $list['total'],
         'page' => $list['page'],
         'pages' => $list['pages'],
+        'next_offset' => $list['next_offset'],
+        'has_more' => $list['has_more'],
         'url' => onu_list_filter_url($filters, $list['page']),
     ]);
 } catch (Throwable $e) {

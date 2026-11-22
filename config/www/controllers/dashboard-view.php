@@ -50,7 +50,7 @@ function device_sync_summary(
     ];
 }
 
-function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch, array $scan): array
+function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch, array $scan, int $syncInterval, array $syncWindow = []): array
 {
     $rows = [];
     $number = 0;
@@ -59,7 +59,7 @@ function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch
 
     foreach ($olts as $olt) {
         $number++;
-        $rows[] = dashboard_olt_row($olt, $number, $active, $statuses);
+        $rows[] = dashboard_olt_row($olt, $number, $active, $statuses, $syncInterval, $syncWindow);
     }
 
     foreach ([
@@ -68,14 +68,14 @@ function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch
     ] as $group) {
         foreach ($group['rows'] as $device) {
             $number++;
-            $rows[] = dashboard_snmp_row($device, $number, $group);
+            $rows[] = dashboard_snmp_row($device, $number, $group, $syncInterval, $syncWindow);
         }
     }
 
     return $rows;
 }
 
-function dashboard_olt_row(array $olt, int $number, array $active, array $statuses): array
+function dashboard_olt_row(array $olt, int $number, array $active, array $statuses, int $syncInterval, array $syncWindow = []): array
 {
     $id = (int)($olt['id'] ?? 0);
     $oltId = (int)($olt['olt_id'] ?? 0);
@@ -83,7 +83,11 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     $scanRow = is_array($statuses[(string)$id] ?? null) ? $statuses[(string)$id] : [];
     $scanStatus = (string)($scanRow['status'] ?? '');
     $scanError = (string)($scanRow['last_error'] ?? '');
-    $hasSynced = trim((string)($olt['system_seen_at'] ?? '')) !== '';
+    $seenAt = trim((string)($olt['system_seen_at'] ?? ''));
+    $hasSynced = $seenAt !== '';
+    $overdue = !empty($olt['driver_supported']) && dashboard_sync_overdue(
+        $seenAt, $syncInterval, !empty($olt['is_snmp_driver']) ? $syncWindow : []
+    );
     $failed = !$activeScan && $scanStatus === 'failed';
     $scanProgress = max(0, min(100, (int)($scanRow['progress'] ?? 0)));
     $scanPhase = trim((string)($scanRow['phase'] ?? ''));
@@ -116,15 +120,15 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     if (empty($olt['driver_supported'])) {
         $scanAction = null;
         $activeScan = $pending = $failed = false;
-        $connections[] = dashboard_chip('unknown', 'Tidak didukung', device_access_lock_message());
+        $connections[] = dashboard_chip('unknown', 'Tidak didukung');
     } elseif ($isApi) {
-        $connections[] = dashboard_chip('success', 'API');
+        $connections[] = dashboard_chip($hasSynced ? 'success' : 'neutral', 'API', overdue: $overdue);
     } elseif ($isSnmp) {
         $chip = dashboard_olt_chip((string)($olt['driver_status'] ?? ''), (int)($olt['snmp_fail_count'] ?? 0));
-        $connections[] = dashboard_chip($chip, 'SNMP', 'Status keterjangkauan fast sync SNMP');
+        $connections[] = dashboard_chip($chip, 'SNMP', $overdue);
         if ((int)($olt['hybrid_status'] ?? 0) === 1) {
             $cliChip = dashboard_cli_chip((string)($olt['cli_status'] ?? ''), (int)($olt['cli_fail_count'] ?? 0));
-            $connections[] = dashboard_chip($cliChip, 'Telnet', 'Status sesi Telnet; bukan status keterjangkauan OLT via SNMP');
+            $connections[] = dashboard_chip($cliChip, 'Telnet', $overdue);
         }
     }
 
@@ -138,7 +142,7 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
         'model' => display_model_chars($olt['model'] ?? ''),
         'system_name' => trim((string)($olt['system_name'] ?? '')),
         'row_url' => public_page_url('view-olt', ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, (string)($olt['system_seen_at'] ?? ''), $scanError, $scanProgress, $scanPhase),
+        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, $seenAt, $scanError, $scanProgress, $scanPhase),
         'connections' => $connections,
         'scan' => $scanAction,
         'edit_url' => public_page_url('dashboard', ['edit_device' => $id]),
@@ -147,15 +151,17 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     ];
 }
 
-function dashboard_snmp_row(array $device, int $number, array $group): array
+function dashboard_snmp_row(array $device, int $number, array $group, int $syncInterval, array $syncWindow = []): array
 {
     $id = (int)($device['id'] ?? 0);
-    $hasSynced = trim((string)($device['system_seen_at'] ?? '')) !== '';
+    $seenAt = trim((string)($device['system_seen_at'] ?? ''));
+    $hasSynced = $seenAt !== '';
+    $overdue = !empty($device['driver_supported']) && dashboard_sync_overdue($seenAt, $syncInterval, $syncWindow);
     $pending = !$hasSynced && in_array((string)($device['driver_status'] ?? ''), ['', 'Belum Sync'], true);
     $active = !empty($device['is_active']);
     $supported = !empty($device['driver_supported']);
-    $connections = [$supported ? dashboard_chip($active ? 'success' : 'danger', 'SNMP')
-        : dashboard_chip('unknown', 'Tidak didukung', device_access_lock_message())];
+    $connections = [$supported ? dashboard_chip($active ? 'success' : 'danger', 'SNMP', overdue: $overdue)
+        : dashboard_chip('unknown', 'Tidak didukung')];
 
     return [
         'number' => $number,
@@ -167,7 +173,7 @@ function dashboard_snmp_row(array $device, int $number, array $group): array
         'model' => display_model_chars($device['model'] ?? ''),
         'system_name' => trim((string)($device['system_name'] ?? '')),
         'row_url' => public_page_url((string)$group['page'], ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $supported && $pending, false, false, (string)($device['system_seen_at'] ?? ''), ''),
+        'sync' => dashboard_sync_state($hasSynced, $supported && $pending, false, false, $seenAt, ''),
         'connections' => $connections,
         'scan' => $supported ? [
             'action' => 'sync_snmp_device',
@@ -202,7 +208,6 @@ function dashboard_sync_state(bool $hasSynced, bool $pending, bool $failed, bool
         'failed' => $failed,
         'error' => $failed ? ($lastError !== '' ? $lastError : 'Sinkronisasi gagal') : '',
         'has_synced' => $hasSynced,
-        'title' => $failed ? ($lastError !== '' ? $lastError : 'Sinkronisasi gagal') : 'Terakhir sinkronisasi',
         'time' => $hasSynced ? dashboard_sync_time($seenAt) : '',
         'aria' => $pending ? ($activeScan ? 'Sinkronisasi OLT sedang berjalan' : 'Menunggu sinkronisasi pertama') : '',
         'progress' => max(0, min(100, $progress)),
@@ -211,13 +216,14 @@ function dashboard_sync_state(bool $hasSynced, bool $pending, bool $failed, bool
     ];
 }
 
-function dashboard_chip(string $chip, string $label, string $title = ''): array
+function dashboard_chip(string $chip, string $label, bool $overdue = false): array
 {
+    if ($overdue && $chip === 'success') $chip = 'warning';
+
     return [
         'class' => $chip === 'unknown' ? 'neutral' : $chip,
         'state' => $chip,
         'label' => $label,
-        'title' => $title,
     ];
 }
 
@@ -253,6 +259,22 @@ function dashboard_device_address(mixed $address, int $port): string
     $text = dashboard_device_text($address);
     if ($text !== 'N/A' && $text !== '—' && $port > 0) $text .= ':' . $port;
     return $text;
+}
+
+function dashboard_sync_overdue(string $seenAt, int $interval, array $syncWindow = []): bool
+{
+    $timestamp = strtotime($seenAt);
+    if ($interval <= 0 || $timestamp === false) return false;
+
+    $limit = $timestamp + $interval;
+    $status = (string)($syncWindow['status'] ?? '');
+    $dueAt = (int)($syncWindow['due_at'] ?? 0);
+    $deadline = max(0, (int)($syncWindow['deadline_seconds'] ?? 0));
+    if (in_array($status, ['done', 'queued', 'running'], true)
+        && $dueAt >= $limit && $dueAt <= $limit + $deadline) {
+        $limit = $dueAt + ($status === 'running' ? $deadline : 0);
+    }
+    return time() > $limit;
 }
 
 function dashboard_sync_time(string $date): string

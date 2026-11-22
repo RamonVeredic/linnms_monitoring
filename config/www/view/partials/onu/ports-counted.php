@@ -26,7 +26,7 @@ ksort($onuPortsByNumber, SORT_NUMERIC);
         $onuPortSpeed = trim((string)($onuPortRow['speed'] ?? ''));
         ?>
         <div class="onu-lan-port <?= h($onuPortClass) ?>" data-onu-port="<?= (int)$onuPortNumber ?>">
-            <button type="button" class="onu-lan-button" data-onu-lan-open="<?= (int)$onuPortNumber ?>" aria-haspopup="dialog" aria-controls="onu-ethernet-modal" title="LAN <?= (int)$onuPortNumber ?>">
+            <button type="button" class="onu-lan-button" data-onu-lan-open="<?= (int)$onuPortNumber ?>" aria-haspopup="dialog" aria-controls="onu-ethernet-modal">
                 <span class="onu-lan-icon"><i class="bi bi-ethernet" aria-hidden="true"></i><b class="onu-lan-num" data-num="<?= (int)$onuPortNumber ?>"></b></span>
                 <span><?= h($onuPortSpeed !== '' ? $onuPortSpeed : '—') ?></span>
             </button>

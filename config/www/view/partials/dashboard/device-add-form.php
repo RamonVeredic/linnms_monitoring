@@ -22,7 +22,6 @@ $errorTip = static fn(string $field): string => $fieldError($field) !== ''
                     data-method="<?= h((string)$d['method']) ?>"
                     data-community-default="<?= h((string)($d['default_snmp_community'] ?? 'public')) ?>"
                     data-telnet-cli="<?= !empty($d['telnet_cli']) ? '1' : '0' ?>"
-                    data-quota-allowed="<?= !empty($row['quota_allowed']) ? '1' : '0' ?>"
                     data-enabled="1"
                     <?= $deviceAddSelectedDriverId === $row['key'] ? 'selected' : '' ?>><?= h((string)$d['label']) ?></option>
                 <?php endforeach; ?>

@@ -337,7 +337,6 @@
       editButton.querySelector('i')?.classList.replace('bi-floppy', 'bi-pencil');
       if (editButton.dataset.editLabel) {
         editButton.setAttribute('aria-label', 'Edit ' + editButton.dataset.editLabel);
-        editButton.title = 'Edit ' + editButton.dataset.editLabel;
       }
       const label = editButton.querySelector('span');
       if (label) label.textContent = 'Edit';
@@ -393,7 +392,6 @@
     editButton.querySelector('i')?.classList.replace('bi-pencil', 'bi-floppy');
     if (editButton.dataset.editLabel) {
       editButton.setAttribute('aria-label', 'Simpan ' + editButton.dataset.editLabel);
-      editButton.title = 'Simpan ' + editButton.dataset.editLabel;
     }
     const label = editButton.querySelector('span');
     if (label) label.textContent = 'Simpan';
@@ -832,7 +830,6 @@ document.addEventListener('change', (event) => {
     const expanded = dialog.classList.toggle('is-expanded');
     expandButton.setAttribute('aria-pressed', String(expanded));
     expandButton.setAttribute('aria-label', expanded ? 'Kecilkan terminal' : 'Perbesar terminal');
-    expandButton.title = expanded ? 'Kecilkan terminal' : 'Perbesar terminal';
     session?.fit.fit();
   });
 
@@ -854,6 +851,8 @@ document.addEventListener('change', (event) => {
   'use strict';
 
   const gridSelector = '.olt-pon-grid';
+  const scrollArea = document.querySelector('[data-app-content-scroll]');
+  if (!scrollArea) return;
 
   const focusWithoutScroll = (summary) => {
     try {
@@ -892,7 +891,7 @@ document.addEventListener('change', (event) => {
       const afterTop = summary.getBoundingClientRect().top;
       const delta = afterTop - beforeTop;
       if (Math.abs(delta) > 0.5) {
-        window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+        scrollArea.scrollBy({ top: delta, left: 0, behavior: 'auto' });
       }
 
       setFocusedCard(grid, details);
@@ -910,15 +909,14 @@ document.addEventListener('change', (event) => {
     window.requestAnimationFrame(() => {
       if (!summary.isConnected) return;
 
-      const topbar = document.querySelector('.topbar');
-      const topOffset = Math.max(0, topbar?.getBoundingClientRect().height || 0) + 12;
+      const viewport = scrollArea.getBoundingClientRect();
       const rect = summary.getBoundingClientRect();
-      const visibleTop = topOffset;
-      const visibleBottom = window.innerHeight - 12;
+      const visibleTop = viewport.top + 12;
+      const visibleBottom = viewport.bottom - 12;
 
       if (rect.top < visibleTop || rect.bottom > visibleBottom) {
-        window.scrollTo({
-          top: Math.max(0, window.scrollY + rect.top - topOffset),
+        scrollArea.scrollTo({
+          top: Math.max(0, scrollArea.scrollTop + rect.top - visibleTop),
           left: 0,
           behavior: 'auto',
         });
