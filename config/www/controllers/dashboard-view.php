@@ -56,10 +56,12 @@ function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch
     $number = 0;
     $active = array_fill_keys(array_map('intval', (array)($scan['active_olt_row_ids'] ?? [])), true);
     $statuses = is_array($scan['latest_statuses'] ?? null) ? $scan['latest_statuses'] : [];
+    $monitoringPhases = (array)($scan['monitoring_phases'] ?? []);
 
     foreach ($olts as $olt) {
         $number++;
-        $rows[] = dashboard_olt_row($olt, $number, $active, $statuses, $syncInterval, $syncWindow);
+        $rows[] = dashboard_olt_row($olt, $number, $active, $statuses, $syncInterval, $syncWindow,
+            (string)($monitoringPhases[(int)($olt['id'] ?? 0)] ?? ''));
     }
 
     foreach ([
@@ -75,7 +77,7 @@ function dashboard_device_table_rows(array $olts, array $mikrotik, array $switch
     return $rows;
 }
 
-function dashboard_olt_row(array $olt, int $number, array $active, array $statuses, int $syncInterval, array $syncWindow = []): array
+function dashboard_olt_row(array $olt, int $number, array $active, array $statuses, int $syncInterval, array $syncWindow = [], string $monitoringPhase = ''): array
 {
     $id = (int)($olt['id'] ?? 0);
     $oltId = (int)($olt['olt_id'] ?? 0);
@@ -85,13 +87,13 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     $scanError = (string)($scanRow['last_error'] ?? '');
     $seenAt = trim((string)($olt['system_seen_at'] ?? ''));
     $hasSynced = $seenAt !== '';
-    $overdue = !empty($olt['driver_supported']) && dashboard_sync_overdue(
+    $overdue = !$activeScan && $monitoringPhase === '' && !empty($olt['driver_supported']) && dashboard_sync_overdue(
         $seenAt, $syncInterval, !empty($olt['is_snmp_driver']) ? $syncWindow : []
     );
-    $failed = !$activeScan && $scanStatus === 'failed';
+    $failed = !$activeScan && $monitoringPhase === '' && $scanStatus === 'failed';
     $scanProgress = max(0, min(100, (int)($scanRow['progress'] ?? 0)));
     $scanPhase = trim((string)($scanRow['phase'] ?? ''));
-    $pending = $activeScan || (!$failed && !$hasSynced && in_array((string)($olt['driver_status'] ?? ''), ['', 'Belum Sync'], true));
+    $pending = $activeScan || ($monitoringPhase === '' && !$failed && !$hasSynced && in_array((string)($olt['driver_status'] ?? ''), ['', 'Belum Sync'], true));
     $isApi = !empty($olt['is_api_driver']);
     $isSnmp = !empty($olt['is_snmp_driver']);
 
@@ -120,15 +122,16 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     if (empty($olt['driver_supported'])) {
         $scanAction = null;
         $activeScan = $pending = $failed = false;
+        $monitoringPhase = '';
         $connections[] = dashboard_chip('unknown', 'Tidak didukung');
     } elseif ($isApi) {
         $connections[] = dashboard_chip($hasSynced ? 'success' : 'neutral', 'API', overdue: $overdue);
     } elseif ($isSnmp) {
         $chip = dashboard_olt_chip((string)($olt['driver_status'] ?? ''), (int)($olt['snmp_fail_count'] ?? 0));
-        $connections[] = dashboard_chip($chip, 'SNMP', $overdue);
+        $connections[] = dashboard_chip($chip, 'SNMP');
         if ((int)($olt['hybrid_status'] ?? 0) === 1) {
             $cliChip = dashboard_cli_chip((string)($olt['cli_status'] ?? ''), (int)($olt['cli_fail_count'] ?? 0));
-            $connections[] = dashboard_chip($cliChip, 'Telnet', $overdue);
+            $connections[] = dashboard_chip($cliChip, 'Telnet');
         }
     }
 
@@ -142,7 +145,11 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
         'model' => display_model_chars($olt['model'] ?? ''),
         'system_name' => trim((string)($olt['system_name'] ?? '')),
         'row_url' => public_page_url('view-olt', ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, $seenAt, $scanError, $scanProgress, $scanPhase),
+        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, $seenAt, $scanError, $scanProgress, $scanPhase)
+            + [
+                'monitoring_phase' => $monitoringPhase,
+                'overdue' => $isSnmp && $overdue && !$failed,
+            ],
         'connections' => $connections,
         'scan' => $scanAction,
         'edit_url' => public_page_url('dashboard', ['edit_device' => $id]),

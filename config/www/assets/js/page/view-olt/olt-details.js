@@ -636,12 +636,10 @@ document.addEventListener('change', async (event) => {
 });
 
 document.addEventListener('change', (event) => {
-  const toggle = event.target.closest?.('[data-pon-unsupported-toggle]');
+  const toggle = event.target.closest?.('[data-pon-autoneg-preview]');
   if (!toggle) return;
-  toggle.checked = !toggle.checked;
-  if (typeof window.linnmsNotify === 'function') {
-    window.linnmsNotify('warning', window.linnmsToastMessage("js.olt.option-unsupported", {field: toggle.dataset.ponUnsupportedToggle || 'Konfigurasi PON'}));
-  }
+  const label = toggle.closest('label')?.querySelector('[data-pon-autoneg-preview-label]');
+  if (label) label.textContent = toggle.checked ? 'Enable' : 'Disable';
 });
 
 document.addEventListener('change', (event) => {

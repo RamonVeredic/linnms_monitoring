@@ -241,10 +241,10 @@ $deviceAddModalOpen = $page === 'dashboard' && (
     || !empty($_SESSION['old_olt'])
     || !empty($_SESSION['device_add_errors'])
 );
-$settingsAdminTimingFields = [];
-if ($page === 'settings-admin') {
+$settingsSyncTimingFields = [];
+if (in_array($page, ['settings', 'settings-admin'], true)) {
     require_once LINNMS_UI_ROOT . '/controllers/settings-page.php';
-    $settingsAdminTimingFields = settings_admin_timing_fields($pageShell);
+    $settingsSyncTimingFields = settings_sync_timing_fields($pageShell);
 }
 $managedDeviceUsers = $page === 'settings-admin' ? (array)($pageShell['managed_device_users'] ?? []) : [];
 $oltDetail = null;

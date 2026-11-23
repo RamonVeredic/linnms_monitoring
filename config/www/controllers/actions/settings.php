@@ -69,11 +69,16 @@ function handle_settings_action(string $action): bool
                 $error = $definition[0] . ' harus berupa angka yang valid.';
             }
         }
+        if (is_array($definition) && $definition[1] === 'toggle' && !in_array($raw, ['0', '1'], true)) {
+            $error = toast_message('settings.notification-invalid');
+        }
         if ($error !== null) linnms_action_result(false, $error, public_page_url('notification') . '#notification-settings');
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
+        $message = $definition[1] === 'toggle'
+            ? toast_message($raw === '1' ? 'settings.notification-enabled' : 'settings.notification-disabled', ['field' => $definition[0]])
+            : toast_message('settings.saved', ['field' => $definition[0]]);
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? toast_message('settings.saved', ['field' => $definition[0]])
-            : linnms_action_code_message($result, toast_message('settings.notify-failed')),
+            ? $message : linnms_action_code_message($result, toast_message('settings.notify-failed')),
             public_page_url('notification') . '#notification-settings');
     }
 
@@ -82,10 +87,15 @@ function handle_settings_action(string $action): bool
         if (!is_array($ids)) {
             linnms_action_result(false, toast_message('settings.devices-invalid'), public_page_url('notification') . '#notification-devices');
         }
+        $changedId = valid_positive_id($_POST['notification_device_id'] ?? null);
         $result = linnms_settings_action_request($uid, $action, ['notification_device_ids' => $ids]);
+        $message = toast_message('settings.alert-devices-saved');
+        if ($changedId !== null && !empty($result['ok'])) {
+            $enabled = in_array($changedId, array_map('intval', $ids), true);
+            $message = toast_message($enabled ? 'settings.notification-enabled' : 'settings.notification-disabled', ['field' => 'perangkat']);
+        }
         linnms_action_result(!empty($result['ok']), !empty($result['ok'])
-            ? toast_message('settings.alert-devices-saved')
-            : linnms_action_code_message($result, toast_message('settings.alert-devices-failed')),
+            ? $message : linnms_action_code_message($result, toast_message('settings.alert-devices-failed')),
             public_page_url('notification') . '#notification-devices');
     }
 
@@ -95,7 +105,7 @@ function handle_settings_action(string $action): bool
         $raw = trim((string)($_POST['setting_value'] ?? ''));
         $definitions = [
             'sync_fast_interval_minutes' => ['Interval Fast Sync', 'sync'],
-            'olt_graph_interval_minutes' => ['Interval Sampel Trafik OLT', 'sync'],
+            'olt_graph_interval_seconds' => ['Interval Sampel Trafik Interface', 'sync'],
             'sync_discovery_interval_minutes' => ['Interval Low Sync', 'sync'],
             'sync_middle_interval_minutes' => ['Interval Middle Sync', 'sync'],
             'sync_fast_deadline_seconds' => [toast_message('settings.fast-limit'), 'sync'],

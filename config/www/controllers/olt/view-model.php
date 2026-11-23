@@ -97,7 +97,6 @@ function olt_pon_port_config_fields(): array
 {
     return [
         'olt_port_enable' => ['label' => 'Status Port', 'options' => ['Enable', 'Disable']],
-        'olt_port_autoneg' => ['label' => 'Auto Negotiation', 'options' => ['Enable', 'Disable']],
         'olt_port_speed' => ['label' => 'Kecepatan Port', 'options' => ['1000M', '100M']],
         'olt_port_duplex' => ['label' => 'Mode Duplex', 'options' => ['Full', 'Half']],
         'olt_port_flow_control' => ['label' => 'Flow Control', 'options' => ['Enable', 'Disable']],

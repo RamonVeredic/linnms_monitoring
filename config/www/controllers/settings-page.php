@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-function settings_admin_timing_fields(array $shell): array
+function settings_sync_timing_fields(array $shell): array
 {
     $limits = is_array($shell['numeric_setting_limits'] ?? null) ? $shell['numeric_setting_limits'] : [];
     $timing = is_array($shell['sync_timing_settings'] ?? null) ? $shell['sync_timing_settings'] : [];
     $definitions = [
         ['sync_fast_interval_minutes', 'fast_interval_minutes', 'settingFastInterval', 'Interval Fast Sync', 'menit', 'Jeda antar sinkronisasi cepat untuk memperbarui status perangkat dan ONU'],
-        ['olt_graph_interval_minutes', 'olt_graph_interval_minutes', 'settingOltGraphInterval', 'Interval Sampel Trafik OLT', 'menit', 'Jeda pengambilan data trafik OLT untuk grafik'],
+        ['olt_graph_interval_seconds', 'olt_graph_interval_seconds', 'settingOltGraphInterval', 'Interval Sampel Trafik Interface', 'detik', 'Jeda perekaman grafik PON, uplink, dan interface yang dipilih'],
         ['sync_discovery_interval_minutes', 'discovery_interval_minutes', 'settingDiscoveryInterval', 'Interval Low Sync', 'jam', 'Jeda penemuan ulang perangkat dan ONU melalui sinkronisasi menyeluruh'],
         ['sync_middle_interval_minutes', 'middle_interval_minutes', 'settingMiddleInterval', 'Interval Middle Sync', 'jam', 'Jeda sinkronisasi tingkat menengah untuk memperbarui data yang tidak diambil Fast Sync'],
         ['sync_fast_deadline_seconds', 'fast_deadline_seconds', 'settingFastDeadline', 'Durasi Fast Sync', 'detik', 'Batas waktu pengerjaan satu Fast Sync sebelum dianggap melewati tenggat'],
@@ -25,7 +25,7 @@ function settings_admin_timing_fields(array $shell): array
     foreach ($definitions as [$key, $source, $id, $label, $unit, $help]) {
         $constraint = is_array($limits[$key] ?? null) ? $limits[$key] : null;
         if ($constraint === null) throw new RuntimeException('Batas pengaturan tidak tersedia: ' . $key);
-        $valueSource = in_array($key, ['olt_graph_interval_minutes', 'onu_missing_scan_limit', 'reader_count', 'writer_count', 'fast_sync_onu_batch_size'], true) ? $shell : $timing;
+        $valueSource = in_array($key, ['olt_graph_interval_seconds', 'onu_missing_scan_limit', 'reader_count', 'writer_count', 'fast_sync_onu_batch_size'], true) ? $shell : $timing;
         $value = (int)($valueSource[$source] ?? $constraint['default'] ?? 0);
         $min = (int)($constraint['min'] ?? 0);
         $max = (int)($constraint['max'] ?? 0);

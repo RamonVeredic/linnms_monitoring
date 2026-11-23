@@ -7,7 +7,7 @@ if ($whatsapp === '') $whatsapp = trim((string)($serviceContact['phone'] ?? ''))
 $whatsappDigits = normalize_phone_number($whatsapp);
 if ($whatsappDigits !== '') $serviceContactLinks[] = ['label' => 'WhatsApp', 'value' => $whatsapp, 'url' => 'https://wa.me/' . $whatsappDigits, 'icon' => 'whatsapp'];
 if (trim((string)($serviceContact['email'] ?? '')) !== '') $serviceContactLinks[] = ['label' => 'Email', 'value' => trim((string)$serviceContact['email']), 'url' => 'mailto:' . trim((string)$serviceContact['email']), 'icon' => 'envelope'];
-if (trim((string)($serviceContact['github'] ?? '')) !== '') $serviceContactLinks[] = ['label' => 'GitHub', 'value' => trim((string)$serviceContact['github']), 'url' => (str_starts_with((string)$serviceContact['github'], 'http') ? trim((string)$serviceContact['github']) : 'https://github.com/' . trim((string)$serviceContact['github'])), 'icon' => 'github'];
+// if (trim((string)($serviceContact['github'] ?? '')) !== '') $serviceContactLinks[] = ['label' => 'GitHub', 'value' => trim((string)$serviceContact['github']), 'url' => (str_starts_with((string)$serviceContact['github'], 'http') ? trim((string)$serviceContact['github']) : 'https://github.com/' . trim((string)$serviceContact['github'])), 'icon' => 'github'];
 if (trim((string)($serviceContact['web'] ?? '')) !== '') $serviceContactLinks[] = ['label' => 'Web', 'value' => trim((string)$serviceContact['web']), 'url' => (str_starts_with((string)$serviceContact['web'], 'http') ? trim((string)$serviceContact['web']) : 'https://' . trim((string)$serviceContact['web'])), 'icon' => 'globe2'];
 ?>
     <?php if ($serviceContactLinks !== []): ?>

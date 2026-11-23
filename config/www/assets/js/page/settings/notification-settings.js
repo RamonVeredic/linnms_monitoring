@@ -10,10 +10,12 @@
     const deviceCheckboxes = [...page.querySelectorAll('[data-notification-device-checkbox]')];
     let savedIds = new Set(deviceCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value));
     let saving = false;
-    const saveDevices = async (form) => {
+    const saveDevices = async (checkbox) => {
       if (saving) return;
       saving = true;
+      const form = checkbox.form;
       const body = new FormData(form);
+      body.set('notification_device_id', checkbox.value);
       body.delete('notification_device_ids[]');
       deviceCheckboxes.filter((checkbox) => checkbox.checked).forEach((checkbox) => {
         body.append('notification_device_ids[]', checkbox.value);
@@ -22,7 +24,9 @@
       try {
         const result = await window.linnmsInstantPost(form, body);
         savedIds = new Set(deviceCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value));
-        window.linnmsInstantNotify('success', result.message || window.linnmsToastMessage("js.alert.devices-saved"));
+        window.linnmsInstantNotify('success', result.message || window.linnmsToastMessage(
+          checkbox.checked ? "settings.notification-enabled" : "settings.notification-disabled", { field: "perangkat" }
+        ));
       } catch (error) {
         deviceCheckboxes.forEach((checkbox) => { checkbox.checked = savedIds.has(checkbox.value); });
         window.linnmsInstantNotify('error', error instanceof Error ? error.message : window.linnmsToastMessage("js.alert.devices-failed"));
@@ -32,7 +36,7 @@
       }
     };
     deviceForms.forEach((form) => form.addEventListener('submit', (event) => event.preventDefault()));
-    deviceCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', () => saveDevices(checkbox.form)));
+    deviceCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', () => saveDevices(checkbox)));
   }
 
   const resetEditor = (form, focusButton = false) => {

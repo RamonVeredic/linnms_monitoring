@@ -61,7 +61,7 @@ function render_flash_toast(array $flashes): void
         'live.lan-saved', 'live.pon-state-failed', 'live.ssid-save-failed',
         'live.uncfg-refresh-failed', 'live.uncfg-updated', 'olt.profile-delete-failed',
         'olt.profile-save-failed', 'olt.updated', 'request.unavailable',
-        'settings.device-enable-failed', 'whatsapp.group-not-found', 'whatsapp.token-created',
+        'settings.device-enable-failed', 'settings.notification-enabled', 'settings.notification-disabled', 'whatsapp.group-not-found', 'whatsapp.token-created',
     ], true);
     $messages = array_intersect_key($catalog, $shared)
         + array_filter($catalog, static fn(string $key): bool => str_starts_with($key, 'js.'), ARRAY_FILTER_USE_KEY);

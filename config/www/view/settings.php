@@ -1,8 +1,8 @@
 <div class="settings-page" data-profile-page>
     <?php require project_path('view', 'partials', 'settings-profile.php'); ?>
-    <?php if ($page === 'settings-admin'): ?>
+    <?php $canEditSyncSettings = $page === 'settings-admin' && is_admin(); ?>
     <main class="panel settings-layout" id="sync" aria-label="Pengaturan aplikasi">
-        <header><h2>Konfigurasi</h2></header>
+        <header><h2>Konfigurasi</h2><?php if (!$canEditSyncSettings): ?><p>Pengaturan sinkronisasi hanya dapat diubah oleh admin.</p><?php endif; ?></header>
 
         <div class="settings-columns" data-settings-columns>
             <div class="settings-column" data-settings-column>
@@ -12,33 +12,52 @@
                     <header class="tittle-subtitle"><h3>Sinkronisasi</h3></header>
                     <div class="settings-body">
                         <ul class="settings-list">
-                        <?php foreach ($settingsAdminTimingFields as $field): ?>
+                        <?php foreach ($settingsSyncTimingFields as $field): ?>
                             <li>
+                            <?php if ($canEditSyncSettings): ?>
                             <form method="post" class="settings-row" data-setting-edit-form>
                                 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                                 <input type="hidden" name="action" value="save_numeric_setting">
                                 <input type="hidden" name="setting_key" value="<?= h($field['key']) ?>">
+                            <?php else: ?>
+                            <div class="settings-row">
+                            <?php endif; ?>
                                 <div class="label">
                                     <div class="label-title">
-                                        <label for="<?= h($field['id']) ?>"><?= h($field['label']) ?></label>
+                                        <?php if ($canEditSyncSettings): ?>
+                                            <label for="<?= h($field['id']) ?>"><?= h($field['label']) ?></label>
+                                        <?php else: ?>
+                                            <span><?= h($field['label']) ?></span>
+                                        <?php endif; ?>
                                         <button class="icon-button settings-help-button" type="button" data-setting-help="<?= h($field['help']) ?>" aria-label="Bantuan <?= h($field['label']) ?>" aria-controls="settingsHelpTooltip" aria-expanded="false"><i class="bi bi-question-circle" aria-hidden="true"></i></button>
+                                        <?php if ($canEditSyncSettings): ?>
                                         <button class="icon-button" type="button" data-setting-edit data-target="<?= h($field['id']) ?>" aria-controls="<?= h($field['id']) ?>" aria-pressed="false" data-setting-label="<?= h($field['label']) ?>" aria-label="Edit <?= h($field['label']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
                                         <button class="icon-button" type="button" data-setting-cancel data-target="<?= h($field['id']) ?>" hidden aria-label="Batal mengedit <?= h($field['label']) ?>"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="control">
+                                    <?php if ($canEditSyncSettings): ?>
                                     <span class="settings-number-shell">
                                         <input id="<?= h($field['id']) ?>" type="number" name="setting_value" min="<?= (int)$field['min'] ?>" max="<?= (int)$field['max'] ?>" step="<?= (int)$field['step'] ?>" required value="<?= (int)$field['value'] ?>" inputmode="numeric" disabled data-setting-edit-control>
                                         <span><?= h($field['unit']) ?></span>
                                     </span>
+                                    <?php else: ?>
+                                        <span><?= (int)$field['value'] ?> <?= h($field['unit']) ?></span>
+                                    <?php endif; ?>
                                 </div>
+                            <?php if ($canEditSyncSettings): ?>
                             </form>
+                            <?php else: ?>
+                            </div>
+                            <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                         </ul>
                     </div>
                 </section>
 
+                <?php if ($canEditSyncSettings): ?>
                 <section>
                     <header class="tittle-subtitle"><h3>Notifikasi</h3></header>
                     <div class="settings-body">
@@ -54,7 +73,9 @@
                         </ul>
                     </div>
                 </section>
+                <?php endif; ?>
             </div>
+            <?php if ($canEditSyncSettings): ?>
             <div class="settings-column" data-settings-column>
                 <section>
                     <header class="tittle-subtitle"><h3>Device</h3></header>
@@ -107,9 +128,10 @@
                     </div>
                 </section>
             </div>
+            <?php endif; ?>
         </div>
     </main>
-    <?php if ($managedDeviceUsers !== []): ?>
+    <?php if ($canEditSyncSettings && $managedDeviceUsers !== []): ?>
         <div class="modal settings-edit-modal" id="userLimitEditPanel" data-settings-modal hidden>
             <div class="modal-card settings-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="userLimitEditTitle" tabindex="-1">
                 <div class="panel-heading tittle-subtitle settings-edit-heading modal-header">
@@ -137,7 +159,6 @@
                 </form>
             </div>
         </div>
-    <?php endif; ?>
     <?php endif; ?>
     <?php require project_path('view', 'partials', 'settings-service-contact.php'); ?>
 </div>

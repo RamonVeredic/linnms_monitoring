@@ -345,7 +345,7 @@ final class OltDetailViewModel
         $values['olt_port_enable'] = (string)($preferAdminState
             ? ($port['admin_state'] ?? $port['enable'] ?? '')
             : ($port['enable'] ?? ''));
-        foreach (['autoneg', 'speed', 'duplex', 'flow_control'] as $field) {
+        foreach (['speed', 'duplex', 'flow_control'] as $field) {
             $values['olt_port_' . $field] = (string)($port[$field] ?? '');
         }
         return $values;

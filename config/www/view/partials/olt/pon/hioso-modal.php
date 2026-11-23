@@ -4,7 +4,6 @@ $ponCatatTerpilih = is_array($oltTrafficSelected ?? null) ? $oltTrafficSelected 
 
 
 
-$ponAutonegControl = OltDetailViewModel::ponSwitchState($ponConfigValues['olt_port_autoneg'] ?? null);
 $ponFlowControl = OltDetailViewModel::ponSwitchState($ponConfigValues['olt_port_flow_control'] ?? null);
 $hiosoSpeed = trim((string)($ponConfigValues['olt_port_speed'] ?? ''));
 $hiosoDuplex = trim((string)($ponConfigValues['olt_port_duplex'] ?? ''));
@@ -35,9 +34,8 @@ $ponInterfaceLabel = olt_pon_interface_label(
                     <div class="olt-field field-switch">
                         <span>AutoNeg</span>
                         <label class="pon-status-switch">
-                            <input type="checkbox" role="switch" class="toggle-switch" data-pon-unsupported-toggle="AutoNeg"
-                                   <?= $ponAutonegControl['checked_attribute'] ?>>
-                            <span><?= h($ponAutonegControl['label']) ?></span>
+                            <input type="checkbox" role="switch" class="toggle-switch" aria-label="AutoNeg" data-pon-autoneg-preview checked>
+                            <span data-pon-autoneg-preview-label>Enable</span>
                         </label>
                     </div>
                     <div class="olt-field field-switch">

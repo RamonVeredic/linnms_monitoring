@@ -157,6 +157,7 @@
         const changed = currentRows.some((row) => {
           const state = payload.statuses?.[row.dataset.deviceRowId];
           if (!state) return false;
+          if ((state.monitoring_phase || '') !== row.dataset.monitoringPhase) return true;
           if (state.seen_at !== row.dataset.syncSeenAt && !state.scan_active) return true;
           if (row.querySelector('.conn-time.is-pending')) {
             if (state.scan_active) return false;
