@@ -4,6 +4,8 @@ on:
     tags:
       - 'v*.*.*'
       - 'V*.*.*'
+  repository_dispatch:
+    types: [release-request]
   workflow_dispatch:
     inputs:
       version:
@@ -28,7 +30,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: linnms-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}
+  group: linnms-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.event_name == 'workflow_dispatch' && inputs.version || github.ref) }}
   cancel-in-progress: false
 
 jobs:
@@ -59,15 +61,21 @@ jobs:
       - name: Validate version and source
         id: release
         env:
-          RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.version || 'v0.0.0') }}
-          SOURCE_MODE: ${{ github.ref_type == 'tag' && 'tag' || (inputs.source_mode || 'master') }}
-          SOURCE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.source_mode == 'tag' && inputs.source_tag || '') }}
-          TAGGED_BUILD: ${{ github.ref_type == 'tag' }}
+          RELEASE_VERSION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.ref_type == 'tag' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.version || '')) }}
+          SOURCE_MODE: ${{ (github.event_name == 'repository_dispatch' || github.ref_type == 'tag') && 'tag' || (inputs.source_mode || 'master') }}
+          SOURCE_TAG: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.ref_type == 'tag' && github.ref_name || (inputs.source_mode == 'tag' && inputs.source_tag || '')) }}
+          TAGGED_BUILD: ${{ github.ref_type == 'tag' || github.event_name == 'repository_dispatch' }}
+          REQUEST_EVENT: ${{ github.event_name }}
+          EXPECTED_REVISION: ${{ github.event.client_payload.revision || '' }}
         shell: bash
         run: |
           set -euo pipefail
           if [[ ! "$RELEASE_VERSION" =~ ^[vV][0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo 'Release version must be vMAJOR.MINOR.PATCH (for example v1.2.3)' >&2
+            exit 1
+          fi
+          if [[ "$REQUEST_EVENT" == 'repository_dispatch' && ! "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'Invalid requested revision' >&2
             exit 1
           fi
           if [[ "$SOURCE_MODE" != 'master' && "$SOURCE_MODE" != 'tag' ]]; then
@@ -122,6 +130,7 @@ jobs:
           LINNMS_MODUL: RamonVeredic/linnms-protect
           SOURCE_MODE: ${{ steps.release.outputs.source_mode }}
           SOURCE_TAG: ${{ steps.release.outputs.source_tag }}
+          EXPECTED_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.revision || '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -135,6 +144,10 @@ jobs:
             pinned_sha="$(git -C "$work/source" rev-parse --verify "refs/tags/${SOURCE_TAG}^{commit}")"
             if ! git -C "$work/source" merge-base --is-ancestor "$pinned_sha" origin/master; then
               echo 'Refusing release: source vX.Y.Z tag is not reachable from develop master' >&2
+              exit 1
+            fi
+            if [[ -n "$EXPECTED_REVISION" && "$pinned_sha" != "$EXPECTED_REVISION" ]]; then
+              echo 'Requested revision does not match source tag' >&2
               exit 1
             fi
             git -C "$work/source" checkout -q --detach "$pinned_sha"

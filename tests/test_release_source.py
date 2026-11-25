@@ -8,7 +8,10 @@ DOCKERFILE = (ROOT / "docker/Dockerfile").read_text(encoding="utf-8")
 
 class ReleaseSourceContractTest(unittest.TestCase):
     def test_auto_tag_resolves_promoted_release_tag(self):
-        self.assertIn("SOURCE_TAG: ${{ github.ref_type == 'tag' && github.ref_name ||", WORKFLOW)
+        self.assertIn("types: [release-request]", WORKFLOW)
+        self.assertIn("github.event.client_payload.tag", WORKFLOW)
+        self.assertIn('"$pinned_sha" != "$EXPECTED_REVISION"', WORKFLOW)
+        self.assertIn("github.ref_type == 'tag' && github.ref_name ||", WORKFLOW)
         self.assertNotIn("format('staging-", WORKFLOW)
         self.assertNotIn('SOURCE_TAG" != "staging-', WORKFLOW)
 

@@ -91,7 +91,5 @@ jobs:
           git config user.email 'mondaiajah1w@gmail.com'
           revision="$(cat "$work/revision")"
           test -n "$revision" || { echo 'Source revision is empty' >&2; exit 1; }
-          subject="$(git -C "$work/source" log -1 --format=%s)"
-          test -n "$subject" || { echo 'Source commit subject is empty' >&2; exit 1; }
-          git commit -m "$subject" -m "Revision: ${revision}"
+          git commit -m "Update application frontend" -m "Revision: ${revision}"
           git push origin HEAD:nms-main
