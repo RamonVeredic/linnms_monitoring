@@ -188,7 +188,7 @@ jobs:
             -v "$work:/work" \
             -e BUILD_INPUT=/work/input.dat \
             php:8.5-cli-alpine php /work/pq/encoder/encode.php \
-            /work/plain /work/encoded
+            /work/plain /work/encoded config/app/runtime
           rm -rf "$work/plain"
           mkdir -p "$work/context/bundle" "$work/context/pq"
           cp -a "$work/encoded/." "$work/context/bundle/"

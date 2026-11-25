@@ -17,7 +17,7 @@ RUN apk add --no-cache \
 COPY --from=loader-build /build/loader/modules/nx.so /usr/lib/php85/modules/nx.so
 RUN printf '%s\n' \
       'extension=nx' \
-      'nx.roots=/opt/linnms/runtime,/opt/linnms/config,/opt/linnms/frontend' \
+      'nx.roots=/opt/linnms/runtime' \
       'opcache.enable=0' \
       'opcache.enable_cli=0' \
       > /etc/php85/conf.d/99-nx.ini \
@@ -39,7 +39,7 @@ RUN set -eu; \
     ! find /opt/linnms -name .github -o -name .git -o -name 'Dockerfile*' -o -name '*.sample' | grep .; \
     ! grep -E 'SOURCE_(MOUNTS|ROOT|SEED)|staging|source-seed' /custom-cont-init.d/50-linnms-public-init; \
     find /opt/linnms -type f -name '*.php' -exec php -r \
-      'foreach(array_slice($argv,1) as $f) { $h=fopen($f,"rb"); $b=fread($h,4); fclose($h); if ($b!=="LNC1") {fwrite(STDERR, "E31\n");exit(1);} }' \
+      'foreach(array_slice($argv,1) as $f) { $h=fopen($f,"rb"); $b=fread($h,4); fclose($h); if (($b==="LNC1") !== str_starts_with($f,"/opt/linnms/runtime/")) {fwrite(STDERR, "E31\n");exit(1);} }' \
       -- {} +; \
     test -f /opt/linnms/frontend/entrypoints/index.php; \
     test ! -e /opt/linnms/source-seed
