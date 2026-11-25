@@ -17,16 +17,16 @@ CONFIG_FILES_REQUIRED = {
     "config/app/config/config_default.php",
     "config/app/config/database/migrate.php",
     "config/app/config/defaults.php",
+    "config/app/config/monitoring-drivers.php",
+    "config/app/config/service.php",
+    "config/app/config/session.php",
+    "config/app/config/whatsapp-gateways.php",
     "config/app/default/error.txt",
     "config/app/default/logs_velue.txt",
     "config/app/default/toats_message.txt",
 }
 CONFIG_FILES = CONFIG_FILES_REQUIRED | {
-    "config/app/config/monitoring-drivers.php",
     "config/app/config/public-entry.php",
-    "config/app/config/service.php",
-    "config/app/config/session.php",
-    "config/app/config/whatsapp-gateways.php",
 }
 SERVICES = {
     "linnms-access-refresh", "linnms-cleaner", "linnms-cli-broker",

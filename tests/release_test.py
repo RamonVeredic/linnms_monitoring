@@ -45,6 +45,8 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("config/app/runtime/backend/api.php", "<?php echo 1;")
         self._write("config/app/config/config_default.php", "<?php class LinnmsDefaults {}")
         self._write("config/app/config/defaults.php", "<?php return [];")
+        for name in ("monitoring-drivers.php", "service.php", "session.php", "whatsapp-gateways.php"):
+            self._write(f"config/app/config/{name}", "<?php return [];")
         self._write("config/app/config/database/migrate.php", "<?php exit(0);")
         self._write("config/app/config/blocklist.json", "{}")
         self._write("config/app/config/database.php", "PRIVATE_DB")
@@ -98,7 +100,7 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertNotIn('SOURCE_MOUNTS', converted)
         self.assertNotIn('staging', converted.lower())
 
-    def test_auditor_rejects_plaintext(self):
+    def test_auditor_enforces_runtime_only_encoding(self):
         subprocess.run([sys.executable, str(FILTER), str(self.stage), str(self.output)],
                        check=True)
         context = self.root / "context"
@@ -109,11 +111,13 @@ class ReleaseFilterTest(unittest.TestCase):
         (context / "Dockerfile").write_text("FROM scratch")
         import shutil
         shutil.copytree(self.output, context / "bundle", dirs_exist_ok=True)
-        for php in (context / "bundle").rglob("*.php"):
+        for php in (context / "bundle/config/app/runtime").rglob("*.php"):
             php.write_bytes(b"LNC1" + bytes(64))
         subprocess.run([sys.executable, str(VERIFY), str(context)], check=True)
         unprotected = context / "bundle/config/www/entrypoints/index.php"
-        self.assertTrue(unprotected.read_bytes().startswith(b"LNC1"))
+        self.assertTrue(unprotected.read_bytes().startswith(b"<?php"))
+        seed = context / "bundle/config/app/config/service.php"
+        self.assertTrue(seed.read_bytes().startswith(b"<?php"))
         protected = context / "bundle/config/app/runtime/vendor/driver/example1.php"
         protected.write_text("<?php echo 1;")
         result = subprocess.run([sys.executable, str(VERIFY), str(context)],
@@ -121,7 +125,13 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("E08", result.stderr + result.stdout)
         protected.write_bytes(b"LNC1" + bytes(64))
+        unprotected.write_bytes(b"LNC1" + bytes(64))
+        result = subprocess.run([sys.executable, str(VERIFY), str(context)],
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("E08", result.stderr + result.stdout)
         unprotected.write_text("<?php echo 1;")
+        seed.write_bytes(b"LNC1" + bytes(64))
         result = subprocess.run([sys.executable, str(VERIFY), str(context)],
                                 capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
