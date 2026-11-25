@@ -4,25 +4,11 @@ on:
     tags:
       - 'v*.*.*'
       - 'V*.*.*'
-  repository_dispatch:
-    types: [release-request]
   workflow_dispatch:
     inputs:
       version:
         description: "tag (e.g. v1.2.3)"
         required: true
-        type: string
-      source_mode:
-        description: "rilis vX.Y.Z"
-        type: choice
-        required: true
-        default: master
-        options:
-          - master
-          - tag
-      source_tag:
-        description: "eg tag"
-        required: false
         type: string
 
 permissions:
@@ -30,7 +16,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: linnms-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.event_name == 'workflow_dispatch' && inputs.version || github.ref) }}
+  group: linnms-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -58,15 +44,10 @@ jobs:
             exit 1
           fi
 
-      - name: Validate version and source
+      - name: Validate version
         id: release
         env:
-          RELEASE_VERSION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.ref_type == 'tag' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.version || '')) }}
-          SOURCE_MODE: ${{ (github.event_name == 'repository_dispatch' || github.ref_type == 'tag') && 'tag' || (inputs.source_mode || 'master') }}
-          SOURCE_TAG: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || (github.ref_type == 'tag' && github.ref_name || (inputs.source_mode == 'tag' && inputs.source_tag || '')) }}
-          TAGGED_BUILD: ${{ github.ref_type == 'tag' || github.event_name == 'repository_dispatch' }}
-          REQUEST_EVENT: ${{ github.event_name }}
-          EXPECTED_REVISION: ${{ github.event.client_payload.revision || '' }}
+          RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -74,36 +55,7 @@ jobs:
             echo 'Release version must be vMAJOR.MINOR.PATCH (for example v1.2.3)' >&2
             exit 1
           fi
-          if [[ "$REQUEST_EVENT" == 'repository_dispatch' && ! "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]; then
-            echo 'Invalid requested revision' >&2
-            exit 1
-          fi
-          if [[ "$SOURCE_MODE" != 'master' && "$SOURCE_MODE" != 'tag' ]]; then
-            echo 'Invalid source mode: expected master or tag' >&2
-            exit 1
-          fi
-          if [[ "$SOURCE_MODE" == 'tag' && -z "$SOURCE_TAG" ]]; then
-            echo 'source_mode=tag requires source_tag' >&2
-            exit 1
-          fi
-          if [[ "$SOURCE_MODE" == 'master' && -n "$SOURCE_TAG" ]]; then
-            echo 'source_tag is only supported in tag mode' >&2
-            exit 1
-          fi
-          if [[ -n "$SOURCE_TAG" ]]; then
-            if [[ ! "$SOURCE_TAG" =~ ^[vV][0-9]+\.[0-9]+\.[0-9]+$ ]] ||
-               [[ "${SOURCE_TAG:1}" != "${RELEASE_VERSION:1}" ]]; then
-              echo 'Source tag must match the release version' >&2
-              exit 1
-            fi
-            if [[ "$TAGGED_BUILD" == "true" && "$SOURCE_TAG" != "$RELEASE_VERSION" ]]; then
-              echo 'Automatic release tag must match the promoted source release tag' >&2
-              exit 1
-            fi
-          fi
           echo "version=${RELEASE_VERSION:1}" >> "$GITHUB_OUTPUT"
-          echo "source_mode=$SOURCE_MODE" >> "$GITHUB_OUTPUT"
-          echo "source_tag=$SOURCE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Test release rules
         run: |
@@ -128,9 +80,6 @@ jobs:
           LINNMS_TOKEN: ${{ secrets.LINNMS_MONITORING_TOKEN_GIT }}
           TARGET_INPUT: RamonVeredic/linnms_deplov
           LINNMS_MODUL: RamonVeredic/linnms-protect
-          SOURCE_MODE: ${{ steps.release.outputs.source_mode }}
-          SOURCE_TAG: ${{ steps.release.outputs.source_tag }}
-          EXPECTED_REVISION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.revision || '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -138,22 +87,6 @@ jobs:
           mkdir -p "$work"
           git -c advice.detachedHead=false clone -q --depth 1 --branch master \
             "https://x-access-token:${LINNMS_TOKEN}@github.com/${TARGET_INPUT}.git" "$work/source"
-          if [[ "$SOURCE_MODE" == "tag" ]]; then
-            git -C "$work/source" fetch -q --unshallow origin master
-            git -C "$work/source" fetch -q origin "refs/tags/${SOURCE_TAG}:refs/tags/${SOURCE_TAG}"
-            pinned_sha="$(git -C "$work/source" rev-parse --verify "refs/tags/${SOURCE_TAG}^{commit}")"
-            if ! git -C "$work/source" merge-base --is-ancestor "$pinned_sha" origin/master; then
-              echo 'Refusing release: source vX.Y.Z tag is not reachable from develop master' >&2
-              exit 1
-            fi
-            if [[ -n "$EXPECTED_REVISION" && "$pinned_sha" != "$EXPECTED_REVISION" ]]; then
-              echo 'Requested revision does not match source tag' >&2
-              exit 1
-            fi
-            git -C "$work/source" checkout -q --detach "$pinned_sha"
-          fi
-          # Resolve the actual checked-out snapshot exactly once for build metadata.
-          # Manual develop-master releases do not require an SHA input.
           resolved_sha="$(git -C "$work/source" rev-parse HEAD)"
           git -c advice.detachedHead=false clone -q --depth 1 --branch main \
             "https://x-access-token:${LINNMS_TOKEN}@github.com/${LINNMS_MODUL}.git" "$work/pq"
@@ -163,7 +96,7 @@ jobs:
           echo "Runtime revision: $pq_sha"
           {
             echo "### LINNMS Release"
-            printf -- "- Release ref: %s\n" "${SOURCE_TAG:-master}"
+            printf -- "- Source branch: %s\n" master
             printf -- "- Build revision: %s\n" "$resolved_sha"
             printf -- "- Runtime revision: %s\n" "$pq_sha"
           } >> "$GITHUB_STEP_SUMMARY"
