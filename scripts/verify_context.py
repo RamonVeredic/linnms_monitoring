@@ -22,6 +22,11 @@ for name in ("blocklist.json", "config_default.php", "defaults.php",
     seed = build_context / "bundle/config/app/config" / name
     if not seed.is_file() or seed.stat().st_size == 0:
         raise SystemExit("E13")
+if not (build_context / "bundle/config/app/workers/access-ready.php").is_file():
+    raise SystemExit("E14")
+if (build_context / "bundle/config/app/runtime/workers").exists():
+    raise SystemExit("E15")
+protected_roots = tuple("bundle/config/app/runtime/" + scope + "/" for scope in ("backend", "src", "vendor"))
 file_count = 0
 for file in build_context.rglob("*"):
     if file.is_symlink():
@@ -37,7 +42,7 @@ for file in build_context.rglob("*"):
         if any(part.lower() in deny or part.startswith(".") for part in rel.parts):
             raise SystemExit("E07")
         if rel.suffix.lower() == ".php":
-            protected = rel.as_posix().startswith("bundle/config/app/runtime/")
+            protected = rel.as_posix().startswith(protected_roots)
             with file.open("rb") as source_php:
                 encoded = source_php.read(4) == b"LNC1"
             if encoded != protected:

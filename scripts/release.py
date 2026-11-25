@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 RUNTIME_DIRECTORY = "config/app/runtime"
+WORKER_DIRECTORY = "config/app/workers"
 FRONTEND_DIRECTORY = "config/www"
 NGINX_FILES = {
     "nginx/nginx.conf", "nginx/resolver.conf", "nginx/ssl.conf",
@@ -41,6 +42,8 @@ FORBIDDEN_SUFFIXES = {".sample", ".bak", ".orig", ".log", ".tmp", ".temp"}
 REQUIRED = CONFIG_FILES_REQUIRED | {
     "config/app/runtime/app/paths.php",
     "config/app/runtime/backend/api.php",
+    "config/app/workers/access-ready.php",
+    "config/app/workers/worker.php",
     "config/www/entrypoints/index.php",
     "nginx/nginx.conf",
     "nginx/site-confs/default.conf",
@@ -60,7 +63,9 @@ def permitted(rel: pathlib.PurePosixPath) -> bool:
         return True
     if s == "linnms.init.d/50-linnms-public-init":
         return True
-    if s.startswith(RUNTIME_DIRECTORY + "/") and rel.suffix.lower() in RUNTIME_SUFFIXES:
+    if s.startswith(RUNTIME_DIRECTORY + "/workers/"):
+        return False
+    if s.startswith((RUNTIME_DIRECTORY + "/", WORKER_DIRECTORY + "/")) and rel.suffix.lower() in RUNTIME_SUFFIXES:
         return True
     if s.startswith(FRONTEND_DIRECTORY + "/") and rel.suffix.lower() in WEB_SUFFIXES:
         return True
