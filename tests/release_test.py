@@ -43,6 +43,10 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("linnms.init.d/50-linnms-public-init", INIT)
         self._write("config/app/runtime/app/paths.php", "<?php echo 1;")
         self._write("config/app/runtime/backend/api.php", "<?php echo 1;")
+        self._write("config/app/runtime/src/example.php", "<?php echo 1;")
+        self._write("config/app/workers/access-ready.php", "<?php echo 1;")
+        self._write("config/app/workers/worker.php", "<?php echo 1;")
+        self._write("config/app/runtime/workers/worker.php", "<?php echo 2;")
         self._write("config/app/config/config_default.php", "<?php class LinnmsDefaults {}")
         self._write("config/app/config/defaults.php", "<?php return [];")
         for name in ("monitoring-drivers.php", "service.php", "session.php", "whatsapp-gateways.php"):
@@ -83,6 +87,8 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertIn('CONFIG_TEMPLATE="$CONFIG_IMAGE"', init)
         self.assertIn("release-ready", init)
         self.assertTrue((self.output / "config/app/runtime/app/example1.php").exists())
+        self.assertTrue((self.output / "config/app/workers/worker.php").is_file())
+        self.assertFalse((self.output / "config/app/runtime/workers").exists())
         self.assertTrue((self.output / "config/www/assets/pages/dashboard/assets.json").exists())
         self.assertTrue((self.output / "linnms.service.d/linnms-sampler-1").exists())
         self.assertTrue((self.output / "config/app/config/config_default.php").is_file())
@@ -100,7 +106,7 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertNotIn('SOURCE_MOUNTS', converted)
         self.assertNotIn('staging', converted.lower())
 
-    def test_auditor_enforces_runtime_only_encoding(self):
+    def test_auditor_enforces_selected_runtime_encoding(self):
         subprocess.run([sys.executable, str(FILTER), str(self.stage), str(self.output)],
                        check=True)
         context = self.root / "context"
@@ -111,8 +117,9 @@ class ReleaseFilterTest(unittest.TestCase):
         (context / "Dockerfile").write_text("FROM scratch")
         import shutil
         shutil.copytree(self.output, context / "bundle", dirs_exist_ok=True)
-        for php in (context / "bundle/config/app/runtime").rglob("*.php"):
-            php.write_bytes(b"LNC1" + bytes(64))
+        for scope in ("backend", "src", "vendor"):
+            for php in (context / "bundle/config/app/runtime" / scope).rglob("*.php"):
+                php.write_bytes(b"LNC1" + bytes(64))
         subprocess.run([sys.executable, str(VERIFY), str(context)], check=True)
         unprotected = context / "bundle/config/www/entrypoints/index.php"
         self.assertTrue(unprotected.read_bytes().startswith(b"<?php"))
@@ -131,11 +138,16 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("E08", result.stderr + result.stdout)
         unprotected.write_text("<?php echo 1;")
-        seed.write_bytes(b"LNC1" + bytes(64))
-        result = subprocess.run([sys.executable, str(VERIFY), str(context)],
-                                capture_output=True, text=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("E08", result.stderr + result.stdout)
+        for plain in (seed, context / "bundle/config/app/runtime/app/paths.php",
+                      context / "bundle/config/app/workers/worker.php"):
+            original = plain.read_bytes()
+            self.assertTrue(original.startswith(b"<?php"))
+            plain.write_bytes(b"LNC1" + bytes(64))
+            result = subprocess.run([sys.executable, str(VERIFY), str(context)],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("E08", result.stderr + result.stdout)
+            plain.write_bytes(original)
 
 if __name__ == "__main__":
     unittest.main()
