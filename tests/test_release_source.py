@@ -7,18 +7,14 @@ WORKFLOW = (ROOT / ".github/workflows/linnms_monitoring.yml").read_text(encoding
 DOCKERFILE = (ROOT / "docker/Dockerfile").read_text(encoding="utf-8")
 
 class ReleaseSourceContractTest(unittest.TestCase):
-    def test_auto_tag_resolves_promoted_release_tag(self):
-        self.assertIn("types: [release-request]", WORKFLOW)
-        self.assertIn("github.event.client_payload.tag", WORKFLOW)
-        self.assertIn('"$pinned_sha" != "$EXPECTED_REVISION"', WORKFLOW)
-        self.assertIn("github.ref_type == 'tag' && github.ref_name ||", WORKFLOW)
-        self.assertNotIn("format('staging-", WORKFLOW)
-        self.assertNotIn('SOURCE_TAG" != "staging-', WORKFLOW)
-
-    def test_promoted_tag_checked_against_develop_master(self):
-        self.assertIn("refs/tags/${SOURCE_TAG}:refs/tags/${SOURCE_TAG}", WORKFLOW)
-        self.assertIn('merge-base --is-ancestor "$pinned_sha" origin/master', WORKFLOW)
-        self.assertIn("source vX.Y.Z tag is not reachable", WORKFLOW)
+    def test_source_is_always_master(self):
+        self.assertIn("clone -q --depth 1 --branch master", WORKFLOW)
+        self.assertIn("github.ref_type == 'tag' && github.ref_name || inputs.version", WORKFLOW)
+        self.assertNotIn("source_mode:", WORKFLOW)
+        self.assertNotIn("source_tag:", WORKFLOW)
+        self.assertNotIn("SOURCE_TAG:", WORKFLOW)
+        self.assertNotIn("repository_dispatch:", WORKFLOW)
+        self.assertNotIn('git -C "$work/source" checkout', WORKFLOW)
 
     def test_manual_master_publish_needs_no_sha_input(self):
         self.assertNotIn("source_sha:", WORKFLOW)
