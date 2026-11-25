@@ -36,7 +36,7 @@ class MasterContractTest(unittest.TestCase):
         self.assertIn("types: [develop-master]", MASTER)
         self.assertIn("github.event.client_payload.sha", MASTER)
         self.assertIn('git -C "$work/source" merge-base --is-ancestor "$SOURCE_SHA" origin/master', MASTER)
-        self.assertIn('git -C "$work/source" log -1 --format=%s', MASTER)
+        self.assertNotIn('git -C "$work/source" log -1 --format=%s', MASTER)
         self.assertIn('git commit -m "Update application frontend" -m "Revision: ${revision}"', MASTER)
         self.assertIn("git config user.name 'planetsrv'", MASTER)
         self.assertIn("git config user.email 'mondaiajah1w@gmail.com'", MASTER)
