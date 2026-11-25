@@ -184,12 +184,17 @@ jobs:
               find /work/plain -type f -name "*.php" -print0 |
               xargs -0 -r -n 1 php -l >/dev/null
             '
-          docker run --rm --user "$(id -u):$(id -g)" \
-            -v "$work:/work" \
-            -e BUILD_INPUT=/work/input.dat \
-            php:8.5-cli-alpine php /work/pq/encoder/encode.php \
-            /work/plain /work/encoded
-          rm -rf "$work/plain"
+          current=plain
+          for scope in backend src vendor; do
+            docker run --rm --user "$(id -u):$(id -g)" \
+              -v "$work:/work" \
+              -e BUILD_INPUT=/work/input.dat \
+              php:8.5-cli-alpine php /work/pq/encoder/encode.php \
+              "/work/$current" "/work/encoded-$scope" "config/app/runtime/$scope"
+            rm -rf "$work/$current"
+            current="encoded-$scope"
+          done
+          mv "$work/$current" "$work/encoded"
           mkdir -p "$work/context/bundle" "$work/context/pq"
           cp -a "$work/encoded/." "$work/context/bundle/"
           cp -a "$work/pq/loader" "$work/context/pq/"

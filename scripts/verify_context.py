@@ -16,6 +16,17 @@ deny = {".git", ".github", "docker", "tests", "tools", "source-seed", "doc",
 target_file = pathlib.Path("bundle/config/app/runtime/vendor")
 if not (build_context / target_file).is_dir():
     raise SystemExit("E04")
+for name in ("blocklist.json", "config_default.php", "defaults.php",
+             "monitoring-drivers.php", "service.php", "session.php",
+             "whatsapp-gateways.php"):
+    seed = build_context / "bundle/config/app/config" / name
+    if not seed.is_file() or seed.stat().st_size == 0:
+        raise SystemExit("E13")
+if not (build_context / "bundle/config/app/workers/access-ready.php").is_file():
+    raise SystemExit("E14")
+if (build_context / "bundle/config/app/runtime/workers").exists():
+    raise SystemExit("E15")
+protected_roots = tuple("bundle/config/app/runtime/" + scope + "/" for scope in ("backend", "src", "vendor"))
 file_count = 0
 for file in build_context.rglob("*"):
     if file.is_symlink():
@@ -31,10 +42,13 @@ for file in build_context.rglob("*"):
         if any(part.lower() in deny or part.startswith(".") for part in rel.parts):
             raise SystemExit("E07")
         if rel.suffix.lower() == ".php":
-            file_count += 1
+            protected = rel.as_posix().startswith(protected_roots)
             with file.open("rb") as source_php:
-                if source_php.read(4) != b"LNC1":
-                    raise SystemExit("E08")
+                encoded = source_php.read(4) == b"LNC1"
+            if encoded != protected:
+                raise SystemExit("E08")
+            if protected:
+                file_count += 1
         if rel.name.startswith("Dockerfile") or rel.suffix.lower() in {".yml", ".yaml", ".sample"}:
             raise SystemExit("E10")
 if file_count < 20:

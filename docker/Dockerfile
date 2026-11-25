@@ -17,7 +17,7 @@ RUN apk add --no-cache \
 COPY --from=loader-build /build/loader/modules/nx.so /usr/lib/php85/modules/nx.so
 RUN printf '%s\n' \
       'extension=nx' \
-      'nx.roots=/opt/linnms/runtime,/opt/linnms/config,/opt/linnms/frontend' \
+      'nx.roots=/opt/linnms/runtime/backend,/opt/linnms/runtime/src,/opt/linnms/runtime/vendor' \
       'opcache.enable=0' \
       'opcache.enable_cli=0' \
       > /etc/php85/conf.d/99-nx.ini \
@@ -26,6 +26,7 @@ RUN printf '%s\n' \
 RUN mkdir -p /opt/linnms/runtime /opt/linnms/config /opt/linnms/frontend \
       /opt/linnms/nginx /custom-cont-init.d /custom-services.d
 COPY bundle/config/app/runtime/ /opt/linnms/runtime/
+COPY bundle/config/app/workers/ /opt/linnms/workers/
 COPY bundle/config/app/config/ /opt/linnms/config/
 COPY bundle/config/app/default/ /opt/linnms/app/default/
 COPY bundle/config/www/ /opt/linnms/frontend/
@@ -39,9 +40,11 @@ RUN set -eu; \
     ! find /opt/linnms -name .github -o -name .git -o -name 'Dockerfile*' -o -name '*.sample' | grep .; \
     ! grep -E 'SOURCE_(MOUNTS|ROOT|SEED)|staging|source-seed' /custom-cont-init.d/50-linnms-public-init; \
     find /opt/linnms -type f -name '*.php' -exec php -r \
-      'foreach(array_slice($argv,1) as $f) { $h=fopen($f,"rb"); $b=fread($h,4); fclose($h); if ($b!=="LNC1") {fwrite(STDERR, "E31\n");exit(1);} }' \
+      'foreach(array_slice($argv,1) as $f) { $h=fopen($f,"rb"); $b=fread($h,4); fclose($h); if (($b==="LNC1") !== (preg_match("#^/opt/linnms/runtime/(backend|src|vendor)/#", $f) === 1)) {fwrite(STDERR, "E31\n");exit(1);} }' \
       -- {} +; \
     test -f /opt/linnms/frontend/entrypoints/index.php; \
+    test -f /opt/linnms/workers/access-ready.php; \
+    test ! -e /opt/linnms/runtime/workers; \
     test ! -e /opt/linnms/source-seed
 RUN php -d display_errors=1 -r 'require_once "/opt/linnms/runtime/app/paths.php"; require_once "/opt/linnms/config/config_default.php"; if (!class_exists("LinnmsDefaults")) { fwrite(STDERR, "E30\\n"); exit(1); } echo "BUILD_OK\\n";' \
     | grep -F BUILD_OK
