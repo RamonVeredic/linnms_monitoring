@@ -92,10 +92,10 @@ jobs:
           revision="$(cat "$work/revision")"
           test -n "$revision" || { echo 'Source revision is empty' >&2; exit 1; }
           subject="$(git -C "$work/source" log -1 --format=%s)"
-          version_pattern='[vV]?[0-9]+\.[0-9]+\.[0-9]+'
-          merge_pattern="^Merge[[:space:]]+(${version_pattern}|#[0-9]+([[:space:]]+${version_pattern})?|pull request #[0-9]+ from RamonVeredic/dev)$"
-          if [[ ! "$subject" =~ $merge_pattern && ! "$subject" =~ ^([Uu]pdate[[:space:]]+)?${version_pattern}$ ]]; then
-            subject="Update application frontend"
+          test -n "$subject" || { echo 'Source commit subject is empty' >&2; exit 1; }
+          if [[ "${subject,,}" =~ (encrypt|enkrip|encod|decrypt|dekri|protect|protek|production|produksi|staging|loader) ]]; then
+            echo 'Source commit subject must be suitable for publication' >&2
+            exit 1
           fi
           git commit -m "$subject" -m "Revision: ${revision}"
           git push origin HEAD:nms-main

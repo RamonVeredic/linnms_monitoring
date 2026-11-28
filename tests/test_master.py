@@ -39,36 +39,40 @@ class MasterContractTest(unittest.TestCase):
         self.assertIn('git -C "$work/source" merge-base --is-ancestor "$SOURCE_SHA" origin/master', MASTER)
         self.assertIn('git -C "$work/source" log -1 --format=%s', MASTER)
         self.assertIn('git commit -m "$subject" -m "Revision: ${revision}"', MASTER)
-        self.assertIn('subject="Update application frontend"', MASTER)
+        self.assertNotIn('subject="Update application frontend"', MASTER)
         self.assertIn("git config user.name 'planetsrv'", MASTER)
         self.assertIn("git config user.email 'mondaiajah1w@gmail.com'", MASTER)
         self.assertNotIn("github-actions[bot]", MASTER)
-        self.assertIn('merge_pattern=', MASTER)
+        self.assertNotIn('merge_pattern=', MASTER)
         self.assertNotIn('Source: LINNMS-Staging@', MASTER)
         self.assertIn("git diff --cached --quiet", MASTER)
         self.assertIn("permissions:\n  contents: write", MASTER)
         self.assertIn("secrets.LINNMS_MONITORING_TOKEN_GIT", MASTER)
 
     def test_public_subject_selection(self):
-        start = MASTER.index("          version_pattern=")
+        start = MASTER.index('          test -n "$subject"')
         end = MASTER.index("          git commit -m", start)
         selection = MASTER[start:end]
-        for subject, expected in (
-            ("Merge v1.1.0", "Merge v1.1.0"),
-            ("Merge #21", "Merge #21"),
-            ("Merge #21 v1.1.0", "Merge #21 v1.1.0"),
-            ("Merge pull request #21 from RamonVeredic/dev", "Merge pull request #21 from RamonVeredic/dev"),
-            ("Update 1.1.3", "Update 1.1.3"),
-            ("Merge pull request #22 from RamonVeredic/feature", "Update application frontend"),
-            ("Internal changes", "Update application frontend"),
-            ("", "Update application frontend"),
+        for subject in (
+            "Merge v1.1.0",
+            "Merge #21",
+            "Merge #21 v1.1.0",
+            "Merge pull request #21 from RamonVeredic/dev",
+            "Merge pull request #22 from RamonVeredic/fix/app",
+            "Merge application improvements",
         ):
             with self.subTest(subject=subject):
                 result = subprocess.run(
                     ["bash", "-euc", 'subject="$1"\n' + selection + 'printf "%s" "$subject"', "_", subject],
                     check=True, capture_output=True, text=True,
                 )
-                self.assertEqual(result.stdout, expected)
+                self.assertEqual(result.stdout, subject)
+        result = subprocess.run(
+            ["bash", "-euc", 'subject="$1"\n' + selection + 'printf "%s" "$subject"', "_", ""],
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
 
     def test_release_build_uses_independent_source(self):
         self.assertIn("github.com/${TARGET_INPUT}.git", BUILD)
