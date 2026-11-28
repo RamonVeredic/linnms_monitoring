@@ -91,5 +91,11 @@ jobs:
           git config user.email 'mondaiajah1w@gmail.com'
           revision="$(cat "$work/revision")"
           test -n "$revision" || { echo 'Source revision is empty' >&2; exit 1; }
-          git commit -m "Update application frontend" -m "Revision: ${revision}"
+          subject="$(git -C "$work/source" log -1 --format=%s)"
+          version_pattern='[vV]?[0-9]+\.[0-9]+\.[0-9]+'
+          merge_pattern="^Merge[[:space:]]+(${version_pattern}|#[0-9]+([[:space:]]+${version_pattern})?|pull request #[0-9]+ from RamonVeredic/dev)$"
+          if [[ ! "$subject" =~ $merge_pattern && ! "$subject" =~ ^([Uu]pdate[[:space:]]+)?${version_pattern}$ ]]; then
+            subject="Update application frontend"
+          fi
+          git commit -m "$subject" -m "Revision: ${revision}"
           git push origin HEAD:nms-main
