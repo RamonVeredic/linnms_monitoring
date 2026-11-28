@@ -18,13 +18,14 @@ if not (build_context / target_file).is_dir():
     raise SystemExit("E04")
 for name in ("blocklist.json", "config_default.php", "defaults.php",
              "monitoring-drivers.php", "service.php", "session.php",
-             "whatsapp-gateways.php"):
+             "whatsapp-gateways.php", "error.txt", "logs_velue.txt", "toats_message.txt"):
     seed = build_context / "bundle/config/app/config" / name
     if not seed.is_file() or seed.stat().st_size == 0:
         raise SystemExit("E13")
 if not (build_context / "bundle/config/app/workers/access-ready.php").is_file():
     raise SystemExit("E14")
-if (build_context / "bundle/config/app/runtime/workers").exists():
+if ((build_context / "bundle/config/app/runtime/workers").exists()
+        or (build_context / "bundle/config/app/default").exists()):
     raise SystemExit("E15")
 protected_roots = tuple("bundle/config/app/runtime/" + scope + "/" for scope in ("backend", "src", "vendor"))
 file_count = 0

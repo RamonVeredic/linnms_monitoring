@@ -1,5 +1,4 @@
 import pathlib
-import os
 import subprocess
 import sys
 import tempfile
@@ -11,7 +10,7 @@ VERIFY = ROOT / "scripts" / "verify_context.py"
 
 INIT = '''#!/usr/bin/with-contenv sh
 set -eu
-CONFIG_IMAGE=/opt/linnms/config
+CONFIG_IMAGE=/opt/linnms/config-seed
 SOURCE_ROOT=/workspace/linnms-source
 SOURCE_SEED=/opt/linnms/source-seed
 SOURCE_MOUNTS="${LINNMS_SOURCE_MOUNTS:-0}"
@@ -26,11 +25,15 @@ fi
 if [ -L /config/nginx/log ]; then
   echo hello
 fi
-for message_file in toats_message.txt error.txt logs_velue.txt; do
-  echo old-message
+# Persistent configuration
+seed_config_file() {
+  echo "$1"
+}
+for config_file in blocklist.json config_default.php defaults.php monitoring-drivers.php service.php session.php whatsapp-gateways.php error.txt logs_velue.txt toats_message.txt; do
+  config_source="$CONFIG_TEMPLATE/$config_file"
+  seed_config_file "$config_file" "$config_source" || exit 1
 done
-mkdir -p "$APP_ROOT/config"
-find "$APP_ROOT/config" -mindepth 1 -maxdepth 1 ! -name database.php -exec rm -rf -- {} +
+# End persistent configuration
 find /config/nginx -mindepth 1 -maxdepth 1 ! -name log -exec rm -rf -- {} +
 if [ "$SOURCE_MOUNTS" = "1" ]; then
   chown -R abc:users "$SOURCE_ROOT/config/www"
@@ -48,7 +51,7 @@ class ReleaseFilterTest(unittest.TestCase):
         self.stage.mkdir()
         self.output = self.root / "plain"
         self._write("linnms.init.d/50-linnms-public-init", INIT)
-        self._write("config/app/runtime/app/paths.php", "<?php\n    $path = match ($first) {\n        'config' => dirname(LINNMS_ROOT),\n    };")
+        self._write("config/app/runtime/app/paths.php", "<?php\n    $path = match ($first) {\n        'config' => '/config/app',\n        'workers' => dirname(LINNMS_ROOT),\n    };")
         self._write("config/app/runtime/backend/api.php", "<?php echo 1;")
         self._write("config/app/runtime/src/example.php", "<?php echo 1;")
         self._write("config/app/workers/access-ready.php", "<?php echo 1;")
@@ -62,10 +65,10 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("config/app/config/blocklist.json", "{}")
         self._write("config/app/config/database.php", "PRIVATE_DB")
         for name in ("error.txt", "logs_velue.txt", "toats_message.txt"):
-            self._write(f"config/app/default/{name}", "test.message=Example")
+            self._write(f"config/app/config/{name}", "test.message=Example")
         self._write("config/www/entrypoints/index.php", "<?php echo 1;")
-        self._write("config/www/app/helpers/toast-message.php", "<?php $p = '/config/app/default/toats_message.txt';")
-        self._write("config/app/runtime/src/helpers/log-message.php", "<?php $p = '/config/app/default';")
+        self._write("config/www/app/helpers/toast-message.php", "<?php $p = '/config/app/config/toats_message.txt';")
+        self._write("config/app/runtime/src/helpers/log-message.php", "<?php $p = '/config/app/config';")
         self._write("nginx/nginx.conf", "user abc;")
         self._write("nginx/site-confs/default.conf", "root /config/www;")
         self._write("docker/Dockerfile.staging", "FROM example")
@@ -105,42 +108,21 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertTrue((self.output / "config/app/config/database/migrate.php").is_file())
         self.assertFalse((self.output / "config/app/config/database.php").exists())
 
-    def test_persistent_configuration_seed(self):
+    def test_configuration_layout_is_preserved(self):
         subprocess.run([sys.executable, str(FILTER), str(self.stage), str(self.output)], check=True)
         init = (self.output / "linnms.init.d/50-linnms-public-init").read_text()
         self.assertNotIn('find "$APP_ROOT/config" -mindepth', init)
         self.assertIn("CONFIG_IMAGE=/opt/linnms/config-seed", init)
-        start = init.index("# Persistent configuration")
-        end = init.index("# End persistent configuration", start)
-        block = init[start:end]
-        app = self.root / "state/app"
-        config = app / "config"
-        config.mkdir(parents=True)
-        (app / "default").mkdir()
-        (app / "default/error.txt").write_text("custom legacy message")
-        (config / "service.php").write_text("custom service")
-        (config / "blocklist.json").symlink_to("/opt/linnms/config/blocklist.json")
-        (config / "session.php").touch()
-        env = dict(os.environ, APP_ROOT=str(app),
-                   CONFIG_TEMPLATE=str(self.output / "config/app/config"),
-                   DEFAULT_IMAGE=str(self.output / "config/app/default"))
-        shell = "chown() { :; }\n" + block
-        subprocess.run(["sh", "-eu", "-c", shell], env=env, check=True)
-        for name in ("blocklist.json", "config_default.php", "defaults.php", "monitoring-drivers.php",
-                     "service.php", "session.php", "whatsapp-gateways.php",
-                     "error.txt", "logs_velue.txt", "toats_message.txt"):
-            self.assertTrue((config / name).is_file(), name)
-            self.assertFalse((config / name).is_symlink(), name)
-            self.assertGreater((config / name).stat().st_size, 0, name)
-        self.assertEqual((config / "service.php").read_text(), "custom service")
-        self.assertEqual((config / "error.txt").read_text(), "custom legacy message")
-        (config / "toats_message.txt").write_text("custom toast")
-        subprocess.run(["sh", "-eu", "-c", shell], env=env, check=True)
-        self.assertEqual((config / "toats_message.txt").read_text(), "custom toast")
-        self.assertEqual((config / "service.php").read_text(), "custom service")
-        self.assertIn("'workers' => dirname(LINNMS_ROOT)", (self.output / "config/app/runtime/app/paths.php").read_text())
-        self.assertIn("/config/app/config/toats_message.txt", (self.output / "config/www/app/helpers/toast-message.php").read_text())
-        self.assertIn("/config/app/config", (self.output / "config/app/runtime/src/helpers/log-message.php").read_text())
+        self.assertIn("# Persistent configuration", init)
+        self.assertIn('seed_config_file "$config_file" "$config_source" || exit 1', init)
+        for name in ("error.txt", "logs_velue.txt", "toats_message.txt"):
+            source = self.stage / "config/app/config" / name
+            target = self.output / "config/app/config" / name
+            self.assertEqual(source.read_bytes(), target.read_bytes())
+        self.assertFalse((self.output / "config/app/default").exists())
+        for name in ("config/app/runtime/app/paths.php", "config/www/app/helpers/toast-message.php",
+                     "config/app/runtime/src/helpers/log-message.php"):
+            self.assertEqual((self.stage / name).read_bytes(), (self.output / name).read_bytes())
 
     def test_staging_init_without_shebang(self):
         init_path = self.stage / 'linnms.init.d/50-linnms-public-init'

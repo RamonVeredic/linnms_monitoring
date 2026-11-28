@@ -22,9 +22,9 @@ CONFIG_FILES_REQUIRED = {
     "config/app/config/service.php",
     "config/app/config/session.php",
     "config/app/config/whatsapp-gateways.php",
-    "config/app/default/error.txt",
-    "config/app/default/logs_velue.txt",
-    "config/app/default/toats_message.txt",
+    "config/app/config/error.txt",
+    "config/app/config/logs_velue.txt",
+    "config/app/config/toats_message.txt",
 }
 CONFIG_FILES = CONFIG_FILES_REQUIRED | {
     "config/app/config/public-entry.php",
@@ -49,79 +49,6 @@ REQUIRED = CONFIG_FILES_REQUIRED | {
     "nginx/site-confs/default.conf",
     "linnms.init.d/50-linnms-public-init",
 }
-
-CONFIG_SEED_BLOCK = r'''# Persistent configuration
-if [ -L "$APP_ROOT/config" ]; then
-  echo "[LINNMS] Configuration directory must be a real directory." >&2
-  exit 1
-fi
-mkdir -p "$APP_ROOT/config" || exit 1
-chown abc:abc "$APP_ROOT/config" || exit 1
-chmod 0750 "$APP_ROOT/config" || exit 1
-
-seed_config_file() {
-  seed_name="$1"
-  seed_source="$2"
-  seed_target="$APP_ROOT/config/$seed_name"
-  if [ -L "$seed_target" ]; then
-    if [ -d "$seed_target" ]; then
-      echo "[LINNMS] Invalid configuration link: $seed_name" >&2
-      return 1
-    fi
-    seed_link="$(readlink "$seed_target")" || return 1
-    case "$seed_link" in
-      "/opt/linnms/config/$seed_name"|"/opt/linnms/config-seed/$seed_name"|*/config/app/config/"$seed_name")
-        if [ -f "$seed_target" ] && [ -s "$seed_target" ]; then
-          seed_source="$seed_target"
-        fi
-        ;;
-      *)
-        if [ ! -f "$seed_target" ] || [ ! -s "$seed_target" ]; then
-          echo "[LINNMS] Cannot recover configuration link: $seed_name" >&2
-          return 1
-        fi
-        seed_source="$seed_target"
-        ;;
-    esac
-  elif [ -e "$seed_target" ]; then
-    if [ ! -f "$seed_target" ]; then
-      echo "[LINNMS] Invalid configuration file: $seed_name" >&2
-      return 1
-    fi
-    if [ -s "$seed_target" ]; then
-      chown abc:abc "$seed_target" && chmod 0640 "$seed_target"
-      return $?
-    fi
-  fi
-  if [ ! -f "$seed_source" ] || [ ! -s "$seed_source" ]; then
-    echo "[LINNMS] Missing configuration template: $seed_name" >&2
-    return 1
-  fi
-  seed_tmp="$(mktemp "$APP_ROOT/config/.seed.XXXXXX")" || return 1
-  if ! cp -L "$seed_source" "$seed_tmp" ||
-     ! chmod 0640 "$seed_tmp" ||
-     ! chown abc:abc "$seed_tmp" ||
-     ! mv -f "$seed_tmp" "$seed_target"; then
-    rm -f "$seed_tmp"
-    return 1
-  fi
-}
-
-for config_file in blocklist.json config_default.php defaults.php monitoring-drivers.php service.php session.php whatsapp-gateways.php; do
-  seed_config_file "$config_file" "$CONFIG_TEMPLATE/$config_file" || exit 1
-done
-
-for message_file in error.txt logs_velue.txt toats_message.txt; do
-  message_template="$DEFAULT_IMAGE/$message_file"
-  legacy_message="$APP_ROOT/default/$message_file"
-  if [ -f "$legacy_message" ] && [ -s "$legacy_message" ]; then
-    message_template="$legacy_message"
-  fi
-  seed_config_file "$message_file" "$message_template" || exit 1
-done
-
-# End persistent configuration
-'''
 
 def permitted(rel: pathlib.PurePosixPath) -> bool:
     name = rel.name
@@ -169,16 +96,12 @@ def init(text: str) -> str:
                 "staging", "/workspace/linnms-source")
     if any(term.lower() in text.lower() for term in rejected):
         raise ValueError("E22")
-    # Keep local settings independent of the imported source layout.
-    text = text.replace('CONFIG_IMAGE=/opt/linnms/config\n',
-                        'CONFIG_IMAGE=/opt/linnms/config-seed\nDEFAULT_IMAGE=/opt/linnms/app/default\n', 1)
-    seed_start = text.find('for message_file in toats_message.txt error.txt logs_velue.txt; do\n')
-    seed_end = text.find('\nfind /config/nginx -mindepth 1', seed_start)
-    if seed_start == -1 or seed_end == -1 or 'DEFAULT_IMAGE=' not in text:
+    if ('CONFIG_IMAGE=/opt/linnms/config-seed\n' not in text
+            or '# Persistent configuration' not in text
+            or '# End persistent configuration' not in text
+            or 'find "$APP_ROOT/config" -mindepth' in text
+            or 'seed_config_file "$config_file" "$config_source" || exit 1' not in text):
         raise ValueError("E28")
-    text = text[:seed_start] + CONFIG_SEED_BLOCK + text[seed_end:]
-    text = text.replace('chown root:root "$APP_ROOT/config"\nchmod 0755 "$APP_ROOT/config"\n',
-                        'chown abc:abc "$APP_ROOT/config"\nchmod 0750 "$APP_ROOT/config"\n')
     header = '#!/usr/bin/with-contenv sh\n'
     # Source may use a plain POSIX shebang and either strict shell mode.
     # Replace only the known source header; never carry /bin/sh into the
@@ -191,19 +114,6 @@ def init(text: str) -> str:
         text = header + text
     if not text.startswith(header):
         raise ValueError("E23")
-    return text
-
-def adjust_file(rel: str, text: str) -> str:
-    if rel == "config/app/runtime/app/paths.php":
-        if "'workers' =>" not in text:
-            marker = "        'config' => dirname(LINNMS_ROOT),"
-            if marker not in text:
-                raise ValueError("E29")
-            text = text.replace(marker, marker + "\n        'workers' => dirname(LINNMS_ROOT),", 1)
-    elif rel == "config/www/app/helpers/toast-message.php":
-        text = text.replace("'/config/app/default/toats_message.txt'", "'/config/app/config/toats_message.txt'")
-    elif rel == "config/app/runtime/src/helpers/log-message.php":
-        text = text.replace("'/config/app/default'", "'/config/app/config'")
     return text
 
 def main() -> None:
@@ -231,10 +141,6 @@ def main() -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             if rel.as_posix() == "linnms.init.d/50-linnms-public-init":
                 target.write_text(init(path.read_text(encoding="utf-8")), encoding="utf-8")
-            elif rel.as_posix() in {"config/app/runtime/app/paths.php",
-                                     "config/www/app/helpers/toast-message.php",
-                                     "config/app/runtime/src/helpers/log-message.php"}:
-                target.write_text(adjust_file(rel.as_posix(), path.read_text(encoding="utf-8")), encoding="utf-8")
             else:
                 shutil.copyfile(path, target)
             if rel.parts[0] in {"linnms.init.d", "linnms.service.d"}:
