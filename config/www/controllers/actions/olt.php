@@ -77,6 +77,10 @@ function handle_olt_action(string $action): bool
         $old = $_POST;
         unset($old['csrf'], $old['password']);
         $_SESSION['old_olt'] = $old;
+        if ($code === 'snmp_no_response') {
+            $_SESSION['device_add_errors']['community'] = toast_message('validation.snmp');
+            redirect('?page=dashboard&add_device=1');
+        }
         $message = match ($code) {
             'name_required' => validation_required_message('Nama perangkat'),
             'ip_invalid' => validation_ip_message(),

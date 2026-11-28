@@ -47,7 +47,10 @@ foreach ((array)($onuServiceConfig['mgmt_lines'] ?? []) as $line) {
 <section class="panel onu-service-preview" aria-labelledby="onuServiceTitle" data-onu-service="service">
     <header class="tittle-subtitle"><h3 id="onuServiceTitle">WAN</h3></header>
     <?php if ($onuServiceConfig === []): ?>
-        <p class="text-muted">Data WAN belum tersedia pada snapshot.</p>
+        <div class="empty-state onu-panel-empty-message">
+            <i class="bi bi-globe2" aria-hidden="true"></i>
+            <span>WAN belum tersedia</span>
+        </div>
     <?php else: ?>
     <?php if ($onuServiceDisabledIndexes !== []): ?>
     <div class="onu-service-disabled-list">

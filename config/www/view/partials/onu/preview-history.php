@@ -7,7 +7,7 @@ $historyEntries = array_reverse($historyEntries);
 <section class="panel onu-side-panel onu-connectivity-panel onu-preview-history" aria-labelledby="onuHistoryTitle">
     <header class="tittle-subtitle"><h3 id="onuHistoryTitle">Riwayat</h3></header>
     <?php if ($historyEntries === []): ?>
-        <div class="empty-state onu-status-timeline-empty-message">
+        <div class="empty-state onu-panel-empty-message">
             <i class="bi bi-clock-history" aria-hidden="true"></i>
             <span>Belum ada riwayat.</span>
         </div>

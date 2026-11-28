@@ -135,7 +135,7 @@
   color: var(--text-muted);
   font-size: 0.75em;
 }
-.onu-view .onu-status-timeline-empty-message {
+.onu-view .onu-panel-empty-message {
   margin: 0;
   padding: 8px 0;
   color: var(--text-muted);

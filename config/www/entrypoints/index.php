@@ -526,7 +526,6 @@ $telegramHistoryTotal = $page === 'telegram' ? (int)($notificationHistory['total
 $telegramHistoryPages = max(1, (int)ceil($telegramHistoryTotal / $telegramHistoryPageSize));
 $telegramHistoryPage = $page === 'telegram' ? (int)($notificationHistory['page'] ?? 1) : 1;
 $events = $page === 'telegram' ? (array)($notificationHistory['rows'] ?? []) : [];
-$activityPageSize = (int)($pageShell['application_logs']['page_size'] ?? 0);
 $recentActivityPageSize = 50;
 if ($dashboardRead !== null) {
     $recentActivitySearch = (string)($dashboardRead['recentActivitySearch'] ?? '');
@@ -545,16 +544,12 @@ if ($dashboardRead !== null) {
     $recentActivityPage = 1;
     $recentEvents = [];
 }
-$activityFeed = [];
-$activityTotal = 0;
-$activityPages = 1;
-$activityPage = 1;
 if ($page === 'applogs') {
     $applicationLogs = (array)($pageShell['application_logs'] ?? []);
-    $activityTotal = (int)($applicationLogs['total'] ?? 0);
-    $activityPages = (int)($applicationLogs['pages'] ?? 1);
-    $activityPage = (int)($applicationLogs['page'] ?? 1);
-    $activityFeed = (array)($applicationLogs['rows'] ?? []);
+    $appLogTotal = (int)($applicationLogs['total'] ?? 0);
+    $appLogPages = (int)($applicationLogs['pages'] ?? 1);
+    $appLogPage = (int)($applicationLogs['page'] ?? 1);
+    $appLogEntries = (array)($applicationLogs['rows'] ?? []);
 }
 
 require project_path('view', 'layouts', 'app.php');

@@ -65,7 +65,7 @@ function dispatch_device_action(string &$action): void
                 $deviceAddErrors['password'] = toast_message('device.password-reenter');
             }
             $oldDeviceInput = $_POST;
-            unset($oldDeviceInput['csrf'], $oldDeviceInput['password'], $oldDeviceInput['community']);
+            unset($oldDeviceInput['csrf'], $oldDeviceInput['password']);
             $_SESSION[$submittedGroup === 'router' || $submittedGroup === 'switch' ? 'old_snmp_device' : 'old_olt'] = $oldDeviceInput;
             $_SESSION['device_add_errors'] = $deviceAddErrors;
             flash('error', toast_message('device.form-check'));
@@ -114,11 +114,17 @@ function dispatch_device_action(string &$action): void
                 'device_name' => trim((string)($_POST['device_name'] ?? '')),
                 'ip_address' => trim((string)($_POST['ip_address'] ?? '')),
                 'snmp_port' => trim((string)($_POST['snmp_port'] ?? '161')),
+                'community' => (string)($_POST['community'] ?? ''),
             ];
             $reason = linnms_action_reason($created ?? []);
-            flash('error', in_array($reason, ['request_unavailable', 'account_limit'], true)
-                ? device_add_limit_message($reason, $publicDeviceLabel)
-                : toast_message('device.add-failed', ['device' => $publicDeviceLabel]));
+            if ($reason === 'snmp_no_response') {
+                $_SESSION['device_add_errors']['community'] = toast_message('validation.snmp');
+                redirect($addPage);
+            }
+            flash('error', match ($reason) {
+                'request_unavailable', 'account_limit' => device_add_limit_message($reason, $publicDeviceLabel),
+                default => toast_message('device.add-failed', ['device' => $publicDeviceLabel]),
+            });
             redirect($addPage);
         }
     }

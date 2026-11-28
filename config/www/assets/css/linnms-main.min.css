@@ -2610,13 +2610,15 @@ fieldset {
 .recent-activity-status {
   font-weight: 400;
 }
-.recent-activity-pagination {
+.recent-activity-pagination,
+.app-log-pagination {
   justify-content: flex-end;
   padding: 12px 16px;
   border-top: 1px solid var(--bg-line-soft);
   background: var(--bg-hover);
 }
-.recent-activity-pagination small {
+.recent-activity-pagination small,
+.app-log-pagination small {
   color: var(--text-muted);
 }
 button,

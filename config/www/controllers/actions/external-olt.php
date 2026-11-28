@@ -58,7 +58,7 @@ function handle_api_action(string $action): bool
             foreach ($errors as $error) flash('error', $error);
             if ($action === 'add_olt') {
                 $_SESSION['old_olt'] = $_POST;
-                unset($_SESSION['old_olt']['community'], $_SESSION['old_olt']['password'], $_SESSION['old_olt']['csrf']);
+                unset($_SESSION['old_olt']['password'], $_SESSION['old_olt']['csrf']);
             }
             redirect($returnPage);
         }
@@ -82,7 +82,7 @@ function handle_api_action(string $action): bool
         }
         if ($action === 'add_olt') {
             $_SESSION['old_olt'] = $_POST;
-            unset($_SESSION['old_olt']['community'], $_SESSION['old_olt']['password'], $_SESSION['old_olt']['csrf']);
+            unset($_SESSION['old_olt']['password'], $_SESSION['old_olt']['csrf']);
         }
         $code = (string)linnms_action_reason($result, 'internal');
         if (in_array($code, ['request_unavailable', 'account_limit'], true)) {

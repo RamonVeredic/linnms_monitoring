@@ -1,9 +1,9 @@
 <?php
-$feed = $feed ?? [];
+$appLogEntries = $appLogEntries ?? [];
 ?>
-<?php if ($feed === []): ?>
-    <div class="public-log-empty"><div class="empty-state"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Belum ada aktivitas terbaru</span></div></div>
-<?php else: foreach ($feed as $event):
+<?php if ($appLogEntries === []): ?>
+    <div class="public-log-empty"><div class="empty-state"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Belum ada log aplikasi</span></div></div>
+<?php else: foreach ($appLogEntries as $event):
     $entryTime = format_feed_time($event['created_at'] ?? null);
     $level = strtolower(trim((string)($event['level'] ?? 'info')));
     $message = rtrim(trim((string)($event['message'] ?? '')), " .\t\n\r\0\x0B");
@@ -24,6 +24,7 @@ $feed = $feed ?? [];
     $logText = $showUsername && !str_contains(mb_strtolower($message), mb_strtolower($username))
         ? $username . ': ' . $message : $message;
     $badge = match ($level) {
+        'info', 'success' => ['label' => 'Info', 'class' => 'info'],
         'warning' => ['label' => 'Peringatan', 'class' => 'warning'],
         'error', 'critical' => ['label' => 'Error', 'class' => 'danger'],
         default => null,
