@@ -10,7 +10,7 @@ VERIFY = ROOT / "scripts" / "verify_context.py"
 
 INIT = '''#!/usr/bin/with-contenv sh
 set -eu
-CONFIG_IMAGE=/opt/linnms/config-seed
+CONFIG_IMAGE=/opt/linnms/settings-seed
 SOURCE_ROOT=/workspace/linnms-source
 SOURCE_SEED=/opt/linnms/source-seed
 SOURCE_MOUNTS="${LINNMS_SOURCE_MOUNTS:-0}"
@@ -57,18 +57,18 @@ class ReleaseFilterTest(unittest.TestCase):
         self._write("config/app/workers/access-ready.php", "<?php echo 1;")
         self._write("config/app/workers/worker.php", "<?php echo 1;")
         self._write("config/app/runtime/workers/worker.php", "<?php echo 2;")
-        self._write("config/app/config/config_default.php", "<?php class LinnmsDefaults {}")
-        self._write("config/app/config/defaults.php", "<?php return [];")
+        self._write("config/app/settings/config_default.php", "<?php class LinnmsDefaults {}")
+        self._write("config/app/settings/defaults.php", "<?php return [];")
         for name in ("monitoring-drivers.php", "service.php", "session.php", "whatsapp-gateways.php"):
-            self._write(f"config/app/config/{name}", "<?php return [];")
-        self._write("config/app/config/database/migrate.php", "<?php exit(0);")
-        self._write("config/app/config/blocklist.json", "{}")
-        self._write("config/app/config/database.php", "PRIVATE_DB")
+            self._write(f"config/app/settings/{name}", "<?php return [];")
+        self._write("config/app/settings/database/migrate.php", "<?php exit(0);")
+        self._write("config/app/settings/blocklist.json", "{}")
+        self._write("config/app/settings/database.php", "PRIVATE_DB")
         for name in ("error.txt", "logs_velue.txt", "toats_message.txt"):
-            self._write(f"config/app/config/{name}", "test.message=Example")
+            self._write(f"config/app/settings/{name}", "test.message=Example")
         self._write("config/www/entrypoints/index.php", "<?php echo 1;")
-        self._write("config/www/app/helpers/toast-message.php", "<?php $p = '/config/app/config/toats_message.txt';")
-        self._write("config/app/runtime/src/helpers/log-message.php", "<?php $p = '/config/app/config';")
+        self._write("config/www/app/helpers/toast-message.php", "<?php $p = '/config/app/settings/toats_message.txt';")
+        self._write("config/app/runtime/src/helpers/log-message.php", "<?php $p = '/config/app/settings';")
         self._write("nginx/nginx.conf", "user abc;")
         self._write("nginx/site-confs/default.conf", "root /config/www;")
         self._write("docker/Dockerfile.staging", "FROM example")
@@ -103,23 +103,24 @@ class ReleaseFilterTest(unittest.TestCase):
         self.assertFalse((self.output / "config/app/runtime/workers").exists())
         self.assertTrue((self.output / "config/www/assets/pages/dashboard/assets.json").exists())
         self.assertTrue((self.output / "linnms.service.d/linnms-sampler-1").exists())
-        self.assertTrue((self.output / "config/app/config/config_default.php").is_file())
-        self.assertTrue((self.output / "config/app/config/defaults.php").is_file())
-        self.assertTrue((self.output / "config/app/config/database/migrate.php").is_file())
-        self.assertFalse((self.output / "config/app/config/database.php").exists())
+        self.assertTrue((self.output / "config/app/settings/config_default.php").is_file())
+        self.assertTrue((self.output / "config/app/settings/defaults.php").is_file())
+        self.assertTrue((self.output / "config/app/settings/database/migrate.php").is_file())
+        self.assertFalse((self.output / "config/app/settings/database.php").exists())
 
     def test_configuration_layout_is_preserved(self):
         subprocess.run([sys.executable, str(FILTER), str(self.stage), str(self.output)], check=True)
         init = (self.output / "linnms.init.d/50-linnms-public-init").read_text()
         self.assertNotIn('find "$APP_ROOT/config" -mindepth', init)
-        self.assertIn("CONFIG_IMAGE=/opt/linnms/config-seed", init)
+        self.assertIn("CONFIG_IMAGE=/opt/linnms/settings-seed", init)
         self.assertIn("# Persistent configuration", init)
         self.assertIn('seed_config_file "$config_file" "$config_source" || exit 1', init)
         for name in ("error.txt", "logs_velue.txt", "toats_message.txt"):
-            source = self.stage / "config/app/config" / name
-            target = self.output / "config/app/config" / name
+            source = self.stage / "config/app/settings" / name
+            target = self.output / "config/app/settings" / name
             self.assertEqual(source.read_bytes(), target.read_bytes())
         self.assertFalse((self.output / "config/app/default").exists())
+        self.assertFalse((self.output / "config/app/config").exists())
         for name in ("config/app/runtime/app/paths.php", "config/www/app/helpers/toast-message.php",
                      "config/app/runtime/src/helpers/log-message.php"):
             self.assertEqual((self.stage / name).read_bytes(), (self.output / name).read_bytes())
@@ -151,7 +152,7 @@ class ReleaseFilterTest(unittest.TestCase):
         subprocess.run([sys.executable, str(VERIFY), str(context)], check=True)
         unprotected = context / "bundle/config/www/entrypoints/index.php"
         self.assertTrue(unprotected.read_bytes().startswith(b"<?php"))
-        seed = context / "bundle/config/app/config/service.php"
+        seed = context / "bundle/config/app/settings/service.php"
         self.assertTrue(seed.read_bytes().startswith(b"<?php"))
         protected = context / "bundle/config/app/runtime/vendor/driver/example1.php"
         protected.write_text("<?php echo 1;")

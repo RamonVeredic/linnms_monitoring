@@ -23,19 +23,19 @@ RUN printf '%s\n' \
       > /etc/php85/conf.d/99-nx.ini \
     && php -m | grep -Fx nx \
     && php -r 'if (!extension_loaded("sodium")) exit(1);'
-RUN mkdir -p /opt/linnms/runtime /opt/linnms/config-seed /opt/linnms/frontend \
+RUN mkdir -p /opt/linnms/runtime /opt/linnms/settings-seed /opt/linnms/frontend \
       /opt/linnms/nginx /custom-cont-init.d /custom-services.d
 COPY bundle/config/app/runtime/ /opt/linnms/runtime/
 COPY bundle/config/app/workers/ /opt/linnms/workers/
-COPY bundle/config/app/config/ /opt/linnms/config-seed/
+COPY bundle/config/app/settings/ /opt/linnms/settings-seed/
 COPY bundle/config/www/ /opt/linnms/frontend/
 COPY bundle/nginx/ /opt/linnms/nginx/
 COPY bundle/linnms.init.d/50-linnms-public-init /custom-cont-init.d/50-linnms-public-init
 COPY bundle/linnms.service.d/ /custom-services.d/
 RUN mkdir -p /opt/linnms/app \
-    && ln -s /config/app/config /opt/linnms/config \
-    && ln -s ../config /opt/linnms/app/config \
-    && test -f /opt/linnms/config-seed/session.php
+    && ln -s /config/app/settings /opt/linnms/settings \
+    && ln -s ../settings /opt/linnms/app/settings \
+    && test -f /opt/linnms/settings-seed/session.php
 RUN set -eu; \
     ! find /opt/linnms -name .github -o -name .git -o -name 'Dockerfile*' -o -name '*.sample' | grep .; \
     ! grep -E 'SOURCE_(MOUNTS|ROOT|SEED)|staging|source-seed' /custom-cont-init.d/50-linnms-public-init; \
@@ -46,9 +46,9 @@ RUN set -eu; \
     test -f /opt/linnms/workers/access-ready.php; \
     test ! -e /opt/linnms/runtime/workers; \
     test ! -e /opt/linnms/default; \
-    for f in error.txt logs_velue.txt toats_message.txt; do test -s "/opt/linnms/config-seed/$f"; done; \
+    for f in error.txt logs_velue.txt toats_message.txt; do test -s "/opt/linnms/settings-seed/$f"; done; \
     test ! -e /opt/linnms/source-seed
-RUN php -d display_errors=1 -r 'require_once "/opt/linnms/runtime/app/paths.php"; require_once "/opt/linnms/config-seed/config_default.php"; if (!class_exists("LinnmsDefaults")) { fwrite(STDERR, "E30\\n"); exit(1); } echo "BUILD_OK\\n";' \
+RUN php -d display_errors=1 -r 'require_once "/opt/linnms/runtime/app/paths.php"; require_once "/opt/linnms/settings-seed/config_default.php"; if (!class_exists("LinnmsDefaults")) { fwrite(STDERR, "E30\\n"); exit(1); } echo "BUILD_OK\\n";' \
     | grep -F BUILD_OK
 RUN chmod 0755 /custom-cont-init.d/50-linnms-public-init /custom-services.d/* \
     && chown -R root:root /opt/linnms \

@@ -14,20 +14,20 @@ NGINX_FILES = {
     "nginx/php/www2.conf", "nginx/site-confs/default.conf",
 }
 CONFIG_FILES_REQUIRED = {
-    "config/app/config/blocklist.json",
-    "config/app/config/config_default.php",
-    "config/app/config/database/migrate.php",
-    "config/app/config/defaults.php",
-    "config/app/config/monitoring-drivers.php",
-    "config/app/config/service.php",
-    "config/app/config/session.php",
-    "config/app/config/whatsapp-gateways.php",
-    "config/app/config/error.txt",
-    "config/app/config/logs_velue.txt",
-    "config/app/config/toats_message.txt",
+    "config/app/settings/blocklist.json",
+    "config/app/settings/config_default.php",
+    "config/app/settings/database/migrate.php",
+    "config/app/settings/defaults.php",
+    "config/app/settings/monitoring-drivers.php",
+    "config/app/settings/service.php",
+    "config/app/settings/session.php",
+    "config/app/settings/whatsapp-gateways.php",
+    "config/app/settings/error.txt",
+    "config/app/settings/logs_velue.txt",
+    "config/app/settings/toats_message.txt",
 }
 CONFIG_FILES = CONFIG_FILES_REQUIRED | {
-    "config/app/config/public-entry.php",
+    "config/app/settings/public-entry.php",
 }
 SERVICES = {
     "linnms-access-refresh", "linnms-cleaner", "linnms-cli-broker",
@@ -96,10 +96,11 @@ def init(text: str) -> str:
                 "staging", "/workspace/linnms-source")
     if any(term.lower() in text.lower() for term in rejected):
         raise ValueError("E22")
-    if ('CONFIG_IMAGE=/opt/linnms/config-seed\n' not in text
+    if ('CONFIG_IMAGE=/opt/linnms/settings-seed\n' not in text
             or '# Persistent configuration' not in text
             or '# End persistent configuration' not in text
             or 'find "$APP_ROOT/config" -mindepth' in text
+            or 'find "$APP_ROOT/settings" -mindepth' in text
             or 'seed_config_file "$config_file" "$config_source" || exit 1' not in text):
         raise ValueError("E28")
     header = '#!/usr/bin/with-contenv sh\n'
