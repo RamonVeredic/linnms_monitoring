@@ -86,7 +86,7 @@ function live_device_action_result(int $userId, string $type, array $input): arr
         $failureMessage = toast_message('live.pon-state-failed');
     } elseif ($type === 'start-olt-discovery') {
         $successMessage = !empty($data['already_running'])
-            ? toast_message('olt.sync-running') : toast_message('live.olt-scan-queued');
+            ? toast_message('olt.sync-running') : toast_message('olt.scan-queued');
         $failureMessage = $code === 'scan_cooldown' ? toast_message('api-olt.current') : ($code === 'forbidden'
             ? (($data['reason'] ?? '') === 'driver_disabled' ? toast_message('live.olt-driver-disabled') : toast_message('access.denied'))
             : toast_message('olt.not-found'));
@@ -148,39 +148,39 @@ function live_device_action_input_error(string $type, array $input): ?string
         'olt-uplink-save' => $oltId > 0 && trim((string)($input['port_ref'] ?? '')) !== ''
             && is_array(json_decode((string)($input['config'] ?? '{}'), true))
             && is_array(json_decode((string)($input['vlan'] ?? '{}'), true))
-                ? null : toast_message('live.uplink-invalid'),
+                ? null : validation_invalid_message('Konfigurasi uplink'),
         'olt-pon-status-save' => $oltId > 0
             && in_array((string)($input['olt_port_enable'] ?? ''), ['Enable', 'Disable'], true)
-                ? null : toast_message('live.pon-state-invalid'),
+                ? null : validation_invalid_message('Status PON'),
         'olt-pon-flow-control-save' => $oltId > 0 && (int)($input['olt_port_number'] ?? 0) > 0
             && in_array((string)($input['value'] ?? ''), ['Enable', 'Disable'], true)
-                ? null : toast_message('live.flow-control-invalid'),
+                ? null : validation_invalid_message('Flow Control PON'),
         'olt-profile-save' => $oltId > 0 && $kind !== ''
             && is_array(json_decode((string)($input['data'] ?? '{}'), true))
-                ? null : toast_message('live.profile-invalid'),
+                ? null : validation_invalid_message('Data profil'),
         'olt-profile-delete' => $oltId > 0 && $kind !== ''
-            && trim((string)($input['name'] ?? '')) !== '' ? null : toast_message('live.profile-invalid'),
+            && trim((string)($input['name'] ?? '')) !== '' ? null : validation_invalid_message('Data profil'),
         'onu-interface-state-save' => $onuId > 0 && in_array($kind, ['wifi', 'veip'], true)
             && in_array((string)($input['state'] ?? ''), ['lock', 'unlock'], true)
-                ? null : toast_message('live.interface-state-invalid'),
+                ? null : validation_invalid_message('Status antarmuka'),
         'onu-service-config-delete' => $onuId > 0 && in_array($kind, ['wifi', 'veip', 'tr069'], true)
-            ? null : toast_message('live.onu-service-invalid'),
+            ? null : validation_invalid_message('Layanan ONU'),
         'onu-tr069-save' => $onuId > 0
             && ((string)($input['vlan'] ?? '') === '' || ctype_digit((string)$input['vlan']))
             && ctype_digit((string)($input['priority'] ?? '0'))
-                ? null : toast_message('live.tr069-vlan-invalid'),
-        'onu-remote-access-save' => $onuId > 0 ? null : toast_message('onu.invalid'),
-        'onu-veip-save' => $onuId > 0 && $vlanValid ? null : toast_message('live.veip-invalid'),
-        'onu-wan-ip-save' => $onuId > 0 && ctype_digit($index) ? null : toast_message('live.service-wan-invalid'),
-        'onu-data-service-save' => $onuId > 0 && ctype_digit($index) ? null : toast_message('live.service-invalid'),
-        'onu-ethernet-save' => $onuId > 0 && $port > 0 ? null : toast_message('live.lan-port-invalid'),
-        'onu-wifi-ssid-save' => $onuId > 0 && $port > 0 ? null : toast_message('live.wifi-port-invalid'),
-        'onu-wifi-config-save' => $onuId > 0 && $port > 0 && $vlanValid ? null : toast_message('live.wifi-invalid'),
-        'sync-snmp-device' => (int)($input['device_row_id'] ?? 0) > 0 ? null : toast_message('live.device-invalid'),
+                ? null : validation_invalid_message('VLAN atau prioritas TR069'),
+        'onu-remote-access-save' => $onuId > 0 ? null : validation_invalid_message('ONU'),
+        'onu-veip-save' => $onuId > 0 && $vlanValid ? null : validation_invalid_message('Pengaturan VEIP'),
+        'onu-wan-ip-save' => $onuId > 0 && ctype_digit($index) ? null : validation_invalid_message('Service WAN'),
+        'onu-data-service-save' => $onuId > 0 && ctype_digit($index) ? null : validation_invalid_message('Service'),
+        'onu-ethernet-save' => $onuId > 0 && $port > 0 ? null : validation_invalid_message('Port LAN'),
+        'onu-wifi-ssid-save' => $onuId > 0 && $port > 0 ? null : validation_invalid_message('ONU atau port WiFi'),
+        'onu-wifi-config-save' => $onuId > 0 && $port > 0 && $vlanValid ? null : validation_invalid_message('Pengaturan WiFi'),
+        'sync-snmp-device' => (int)($input['device_row_id'] ?? 0) > 0 ? null : validation_invalid_message('Perangkat'),
         'onu-unconfigured-refresh', 'start-olt-discovery', 'olt-view-refresh', 'olt-port-update' => $oltId > 0
-            ? null : toast_message('olt.invalid'),
+            ? null : validation_invalid_message('OLT'),
         'onu-action' => $onuId > 0 && trim((string)($input['onu_action'] ?? '')) !== ''
-            ? null : toast_message('live.onu-action-invalid'),
+            ? null : validation_invalid_message('Aksi ONU'),
         default => null,
     };
 }
@@ -201,8 +201,8 @@ function live_traffic_result(int $userId, string $type, array $input): array
         + (is_array($result['data'] ?? null) ? $result['data'] : [])];
     $code = (string)($result['code'] ?? 'internal');
     $message = match ($code) {
-        'validation' => in_array($type, ['pon-traffic', 'pon-traffic-live'], true) ? toast_message('olt.invalid')
-            : (in_array($type, ['onu-traffic', 'onu-traffic-live'], true) ? toast_message('onu.invalid') : toast_message('live.interface-invalid')),
+        'validation' => in_array($type, ['pon-traffic', 'pon-traffic-live'], true) ? validation_invalid_message('OLT')
+            : (in_array($type, ['onu-traffic', 'onu-traffic-live'], true) ? validation_invalid_message('ONU') : validation_invalid_message('Interface')),
         'not_found' => $type === 'device-traffic-history' ? toast_message('live.interface-untracked') : toast_message('live.interface-not-found'),
         'unsupported' => in_array($type, ['pon-traffic', 'pon-traffic-live'], true)
             ? toast_message('live.traffic-unavailable') : toast_message('live.onu-traffic-unavailable'),
@@ -225,11 +225,11 @@ function live_traffic_result(int $userId, string $type, array $input): array
 function live_traffic_input_error(string $type, array $input): ?string
 {
     return match ($type) {
-        'pon-traffic', 'pon-traffic-live' => (int)($input['olt_row_id'] ?? 0) > 0 ? null : toast_message('olt.invalid'),
-        'onu-traffic', 'onu-traffic-live' => (int)($input['onu_row_id'] ?? 0) > 0 ? null : toast_message('onu.invalid'),
-        'device-traffic-history' => (int)($input['device_id'] ?? 0) > 0 ? null : toast_message('live.device-invalid'),
+        'pon-traffic', 'pon-traffic-live' => (int)($input['olt_row_id'] ?? 0) > 0 ? null : validation_invalid_message('OLT'),
+        'onu-traffic', 'onu-traffic-live' => (int)($input['onu_row_id'] ?? 0) > 0 ? null : validation_invalid_message('ONU'),
+        'device-traffic-history' => (int)($input['device_id'] ?? 0) > 0 ? null : validation_invalid_message('Perangkat'),
         'device-traffic-record' => (int)($input['device_id'] ?? 0) > 0
-            && trim((string)($input['if_ref'] ?? '')) !== '' ? null : toast_message('live.interface-invalid'),
+            && trim((string)($input['if_ref'] ?? '')) !== '' ? null : validation_invalid_message('Interface'),
         default => null,
     };
 }

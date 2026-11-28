@@ -26,10 +26,18 @@ function linnms_onu_registration_notices(array $response, string $action): array
             $notices[] = ['level' => 'success', 'key' => 'reg.registered'];
         }
     } else {
+        $invalidField = match ($code) {
+            'onu_invalid' => 'ONU',
+            'manual_identity_invalid' => 'OLT, PON, atau serial pra-registrasi',
+            'wan_method_invalid' => 'Metode WAN',
+            'replacement_invalid' => 'Serial pengganti',
+            default => null,
+        };
+        if ($invalidField !== null) {
+            return [['level' => 'error', 'key' => 'validation.invalid', 'values' => ['field' => $invalidField]]];
+        }
         $key = match ($code) {
-            'onu_invalid' => 'onu.invalid',
             'name_required' => 'reg.name-required',
-            'manual_identity_invalid' => 'reg.identity-invalid',
             'pon_not_found' => 'reg.pon-missing',
             'onu_not_found' => $action === 'replace_onu_registration'
                 ? 'reg.pair-missing' : 'onu.not-found',
@@ -47,7 +55,6 @@ function linnms_onu_registration_notices(array $response, string $action): array
             'multiple_untag' => 'reg.one-untag',
             'service_index_invalid' => 'reg.index-invalid',
             'duplicate_vlan' => 'reg.vlan-duplicate',
-            'wan_method_invalid' => 'reg.wan-method-invalid',
             'wan_service_required' => 'reg.wan-service-required',
             'wan_service_one_required' => 'reg.wan-first-service',
             'pppoe_credentials_required' => 'reg.pppoe-required',
@@ -67,7 +74,6 @@ function linnms_onu_registration_notices(array $response, string $action): array
             'profile_after_device' => 'reg.profile-unsaved',
             'profile_rolled_back' => 'reg.profile-rollback',
             'unregister_failed' => 'reg.remove-failed',
-            'replacement_invalid' => 'reg.replacement-invalid',
             'olt_mismatch' => 'reg.replacement-olt',
             'replacement_registered' => 'reg.replacement-used',
             'replacement_register_failed' => 'reg.replacement-failed',
@@ -104,7 +110,7 @@ function handle_onu_registration_action(string $action): bool
     $targetRowId = (int)($resultData['row_id'] ?? $rowId);
     $values = ['number' => (int)($resultData['number'] ?? 0)];
     foreach (linnms_onu_registration_notices($result, $action) as $notice) {
-        flash($notice['level'], toast_message($notice['key'], $values));
+        flash($notice['level'], toast_message($notice['key'], ($notice['values'] ?? []) + $values));
     }
     if (!empty($result['ok'])) {
         linnms_onu_registration_redirect($action === 'unregister_onu' ? 'add-onu' : 'view-onu', $targetRowId);

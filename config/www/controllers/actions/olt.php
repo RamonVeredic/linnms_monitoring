@@ -77,17 +77,24 @@ function handle_olt_action(string $action): bool
         $old = $_POST;
         unset($old['csrf'], $old['password']);
         $_SESSION['old_olt'] = $old;
-        if ($code === 'snmp_no_response') {
-            $_SESSION['device_add_errors']['community'] = toast_message('validation.snmp');
+        $snmpPort = trim((string)($_POST['snmp_port'] ?? '161'));
+        $portField = ctype_digit($snmpPort) && (int)$snmpPort >= 1 && (int)$snmpPort <= 65535
+            && (string)($_POST['hybrid_status'] ?? '') === '1' ? 'ports' : 'snmp_port';
+        $fieldErrors = match ($code) {
+            'snmp_no_response' => ['community' => device_connection_message('snmp')],
+            'name_required' => ['device_name' => validation_required_message('Nama perangkat')],
+            'ip_invalid' => ['ip_address' => validation_ip_message()],
+            'community_required' => ['community' => validation_required_message('Community')],
+            'port_invalid' => [$portField => validation_port_message()],
+            'username_required' => ['username' => validation_required_message('Username')],
+            'password_required' => ['password' => validation_required_message('Password')],
+            default => [],
+        };
+        if ($fieldErrors !== []) {
+            $_SESSION['device_add_errors'] = $fieldErrors;
             redirect('?page=dashboard&add_device=1');
         }
         $message = match ($code) {
-            'name_required' => validation_required_message('Nama perangkat'),
-            'ip_invalid' => validation_ip_message(),
-            'community_required' => validation_required_message('Community'),
-            'port_invalid' => validation_port_message(),
-            'username_required' => validation_required_message('Username'),
-            'password_required' => validation_required_message('Password'),
             'driver_invalid' => toast_message('olt.driver-unsupported'),
             'driver_disabled' => toast_message('olt.driver-disabled'),
             'request_unavailable', 'account_limit' => device_add_limit_message($code, 'OLT'),
@@ -98,7 +105,7 @@ function handle_olt_action(string $action): bool
     }
 
     if ($action === 'scan_snmp_olt') {
-        $message = $code === 'queued' ? 'Fast, Middle, dan Low Sync OLT masuk antrean.'
+        $message = $code === 'queued' ? toast_message('olt.scan-queued')
             : ($code === 'running' ? toast_message('olt.sync-running') : toast_message('olt.sync-start-failed'));
         flash($ok ? 'success' : 'error', $message);
         redirect('?page=dashboard');
@@ -167,7 +174,7 @@ function handle_olt_action(string $action): bool
             : ($code === 'partial' ? toast_message('olt.pon-partial') : toast_message('olt.pon-save-failed')),
         'test_olt_cli_connection' => $ok ? toast_message('olt.cli-test-ok')
             : ($code === 'device_auth_failed' ? toast_message('olt.cli-auth-failed')
-                : toast_message('olt.cli-test-failed') . device_connection_message('telnet')),
+                : device_connection_message('telnet')),
         'refresh_olt_cli_optical' => $ok ? toast_message('olt.optical-read') : toast_message('olt.optical-failed'),
         'refresh_onu_cli_optical' => $ok
             ? toast_message('olt.optical.read', [
@@ -181,11 +188,11 @@ function handle_olt_action(string $action): bool
         default => linnms_action_code_message($result, toast_message('olt.action-unavailable')),
     };
     if ($code === 'scan_not_ready') $message = toast_message('api-olt.scan-wait', ['minutes' => max(1, (int)ceil((int)($payload['retry_after'] ?? 0) / 60))]);
-    if ($code === 'olt_invalid') $message = toast_message('olt.invalid');
+    if ($code === 'olt_invalid') $message = validation_invalid_message('OLT');
     if ($code === 'olt_not_found') $message = toast_message('olt.not-found');
     if ($code === 'driver_disabled') $message = toast_message('olt.driver-disabled');
-    if ($code === 'pon_invalid') $message = toast_message('olt.pon-invalid');
-    if ($code === 'onu_invalid') $message = toast_message('onu.invalid');
+    if ($code === 'pon_invalid') $message = validation_invalid_message('Data PON');
+    if ($code === 'onu_invalid') $message = validation_invalid_message('ONU');
     if ($action === 'update_snmp_olt_port_description' && !$ok && $rowId > 0) {
         $destination = '?page=view-olt&id=' . $rowId;
     }

@@ -91,10 +91,10 @@ function handle_api_action(string $action): bool
             flash('error', toast_message('api-olt.account-unavailable'));
             redirect(public_settings_url());
         } elseif ($code === 'not_found') {
-            flash('error', toast_message('api-olt.invalid'));
+            flash('error', validation_invalid_message('OLT API'));
             redirect('?page=dashboard');
         } elseif ($code === 'validation') {
-            flash('error', toast_message('api-olt.connection-invalid'));
+            flash('error', validation_invalid_message('Data koneksi OLT'));
         } elseif ($code === 'driver_disabled') {
             flash('error', toast_message('api-olt.driver-disabled'));
         } else {
@@ -106,7 +106,7 @@ function handle_api_action(string $action): bool
     if ($action === 'scan_olt') {
         $id = valid_positive_id($_POST['olt_id'] ?? null);
         if ($id === null) {
-            flash('error', toast_message('olt.invalid'));
+            flash('error', validation_invalid_message('OLT'));
             redirect('?page=dashboard');
         }
         $result = linnms_external_olt_action_request($uid, $action, ['olt_id' => $id]);
@@ -130,7 +130,7 @@ function handle_api_action(string $action): bool
         } elseif ($code === 'scanning') {
             flash('scanning', toast_message('api-olt.scan-running'));
         } elseif ($code === 'not_found') {
-            flash('error', toast_message('olt.invalid'));
+            flash('error', validation_invalid_message('OLT'));
         } else {
             flash('error', toast_message('api-olt.scan-failed'));
         }
@@ -140,7 +140,7 @@ function handle_api_action(string $action): bool
     $id = valid_positive_id($_POST['olt_id'] ?? null);
     $index = trim((string)($_POST['onu_index'] ?? ''));
     if ($id === null || $index === '') {
-        flash('error', toast_message('onu.invalid'));
+        flash('error', validation_invalid_message('ONU'));
         redirect('?page=onus');
     }
     $result = linnms_external_olt_action_request($uid, $action, ['olt_id' => $id, 'onu_index' => $index]);

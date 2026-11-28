@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 function validation_required_message(string $field): string
 {
-    return toast_message('validation.required', ['field' => trim($field)]);
+    return trim($field) . ' harus diisi.';
 }
 
 function validation_port_message(): string
 {
-    return toast_message('validation.port');
+    return 'Masukkan port 1–65535.';
 }
 
 function validation_ip_message(): string
 {
-    return toast_message('validation.ip');
+    return 'Periksa IP Anda.';
 }
 
 function device_connection_message(string $kind): string

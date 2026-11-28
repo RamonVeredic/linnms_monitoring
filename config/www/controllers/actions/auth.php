@@ -57,7 +57,7 @@ function linnms_registration_result_message(string $code, int $waitSeconds = 0):
         'username_invalid' => toast_message('auth.username-unavailable'),
         'password_weak' => toast_message('auth.password-weak'),
         'password_mismatch' => toast_message('auth.password-mismatch'),
-        'phone_invalid' => toast_message('auth.whatsapp-invalid'),
+        'phone_invalid' => validation_invalid_message('Nomor WhatsApp'),
         'session_incomplete' => toast_message('auth.signup-incomplete'),
         'code_invalid' => toast_message('auth.otp-length', ['length' => linnms_registration_rule('otp_length')]),
         default => toast_message('auth.signup-failed'),
@@ -222,7 +222,7 @@ function handle_auth_action(string $action): bool
             redirect('?page=register&step=otp');
         }
         if (preg_match('/^62[0-9]{8,15}$/', $normalized) !== 1) {
-            $message = toast_message('auth.whatsapp-invalid');
+            $message = validation_invalid_message('Nomor WhatsApp');
             $_SESSION['old_register'] = ['username' => $username, 'display_name' => $displayName, 'phone_number' => $phoneInput];
             $_SESSION['register_validation'] = ['field' => 'phone_number', 'message' => $message];
             if (linnms_registration_async_request()) linnms_registration_reply(['ok' => false, 'message' => $message, 'field' => 'phone_number', 'rate_limited' => false, 'wait_seconds' => 0], 422);
@@ -265,7 +265,7 @@ function handle_auth_action(string $action): bool
         if ($rateLimited && $wait > 0) $_SESSION['register_otp_cooldown'] = ['phone' => $normalized, 'until' => time() + $wait];
         if ($code === 'session_incomplete') unset($_SESSION['register_pending']);
         $_SESSION['old_register'] = ['username' => $username, 'display_name' => $displayName, 'phone_number' => $phoneInput];
-        $message = $code === 'phone_invalid' ? toast_message('auth.whatsapp-invalid')
+        $message = $code === 'phone_invalid' ? validation_invalid_message('Nomor WhatsApp')
             : ($rateLimited ? 'Terlalu banyak permintaan kode untuk nomor ini.'
                 : (in_array($code, ['session_incomplete', 'request_unavailable'], true)
                     ? linnms_registration_result_message($code) : toast_message('auth.otp-send-failed')));

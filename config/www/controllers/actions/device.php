@@ -27,7 +27,7 @@ function dispatch_device_action(string &$action): void
         $submittedGroup = is_array($submittedDriver) ? (string)($submittedDriver['group'] ?? '') : '';
         $deviceAddErrors = [];
         if (!is_array($submittedDriver) || !in_array($submittedGroup, ['olt', 'router', 'switch'], true)) {
-            $deviceAddErrors['driver_id'] = $submittedDriverId === '' ? 'Isi bidang ini.' : toast_message('device.type-invalid');
+            $deviceAddErrors['driver_id'] = $submittedDriverId === '' ? 'Isi bidang ini.' : validation_invalid_message('Jenis perangkat');
         }
         if (trim((string)($_POST['device_name'] ?? '')) === '') {
             $deviceAddErrors['device_name'] = 'Isi bidang ini.';
@@ -43,7 +43,7 @@ function dispatch_device_action(string &$action): void
             if ($submittedPort === '') {
                 $deviceAddErrors['snmp_port'] = 'Isi bidang ini.';
             } elseif (!ctype_digit($submittedPort) || (int)$submittedPort < 1 || (int)$submittedPort > 65535) {
-                $deviceAddErrors['snmp_port'] = toast_message('device.port-invalid');
+                $deviceAddErrors['snmp_port'] = validation_port_message();
             }
             if (trim((string)($_POST['community'] ?? '')) === '') {
                 $deviceAddErrors['community'] = 'Isi bidang ini.';
@@ -53,7 +53,7 @@ function dispatch_device_action(string &$action): void
                 if ($submittedCliPort === '') {
                     $deviceAddErrors['ports'] = 'Isi bidang ini.';
                 } elseif (!ctype_digit($submittedCliPort) || (int)$submittedCliPort < 1 || (int)$submittedCliPort > 65535) {
-                    $deviceAddErrors['ports'] = toast_message('device.port-invalid');
+                    $deviceAddErrors['ports'] = validation_port_message();
                 }
                 if (trim((string)($_POST['username'] ?? '')) === '') $deviceAddErrors['username'] = 'Isi bidang ini.';
                 if (trim((string)($_POST['password'] ?? '')) === '') $deviceAddErrors['password'] = 'Isi bidang ini.';
@@ -68,7 +68,6 @@ function dispatch_device_action(string &$action): void
             unset($oldDeviceInput['csrf'], $oldDeviceInput['password']);
             $_SESSION[$submittedGroup === 'router' || $submittedGroup === 'switch' ? 'old_snmp_device' : 'old_olt'] = $oldDeviceInput;
             $_SESSION['device_add_errors'] = $deviceAddErrors;
-            flash('error', toast_message('device.form-check'));
             redirect('?page=dashboard&add_device=1');
         }
         if (is_array($submittedDriver) && in_array((string)($submittedDriver['group'] ?? ''), ['router','switch'], true)) {
@@ -90,7 +89,7 @@ function dispatch_device_action(string &$action): void
         $expectedGroup = $action === 'add_mikrotik' ? 'router' : 'switch';
         if (!is_logged_in()) redirect('?page=login');
         if ($group !== $expectedGroup) {
-            flash('error', toast_message('device.type-invalid'));
+            flash('error', validation_invalid_message('Jenis perangkat'));
             redirect('?page=dashboard');
         }
         $addPage = '?page=dashboard&add_device=1';

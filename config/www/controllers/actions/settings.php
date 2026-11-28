@@ -62,7 +62,7 @@ function handle_settings_action(string $action): bool
         $definition = $definitions[$key] ?? null;
         $raw = trim((string)($_POST['setting_value'] ?? ''));
         $error = null;
-        if (!is_array($definition)) $error = toast_message('settings.notification-invalid');
+        if (!is_array($definition)) $error = validation_invalid_message('Pengaturan notifikasi');
         elseif ($definition[1] === 'number') {
             if ($raw === '' || !is_numeric($raw)) $error = toast_message('settings.number-required', ['field' => $definition[0]]);
             elseif (!is_finite((float)$raw)) {
@@ -70,7 +70,7 @@ function handle_settings_action(string $action): bool
             }
         }
         if (is_array($definition) && $definition[1] === 'toggle' && !in_array($raw, ['0', '1'], true)) {
-            $error = toast_message('settings.notification-invalid');
+            $error = validation_invalid_message('Pengaturan notifikasi');
         }
         if ($error !== null) linnms_action_result(false, $error, public_page_url('notification') . '#notification-settings');
         $result = linnms_settings_action_request($uid, $action, ['setting_key' => $key, 'setting_value' => $raw]);
@@ -85,7 +85,7 @@ function handle_settings_action(string $action): bool
     if ($action === 'save_notification_devices') {
         $ids = $_POST['notification_device_ids'] ?? [];
         if (!is_array($ids)) {
-            linnms_action_result(false, toast_message('settings.devices-invalid'), public_page_url('notification') . '#notification-devices');
+            linnms_action_result(false, validation_invalid_message('Pilihan perangkat'), public_page_url('notification') . '#notification-devices');
         }
         $changedId = valid_positive_id($_POST['notification_device_id'] ?? null);
         $result = linnms_settings_action_request($uid, $action, ['notification_device_ids' => $ids]);
@@ -119,7 +119,7 @@ function handle_settings_action(string $action): bool
         ];
         $definition = $definitions[$key] ?? null;
         if (!is_array($definition)) {
-            flash('error', toast_message('settings.selection-invalid'));
+            flash('error', validation_invalid_message('Pengaturan yang dipilih'));
             redirect(public_settings_url() . '#sync');
         }
         [$label, $anchor] = $definition;

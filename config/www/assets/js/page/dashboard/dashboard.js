@@ -289,7 +289,7 @@
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.message || window.linnmsToastMessage("js.dashboard.activity-http", {status: response.status}));
       if (!payload || payload.ok !== true) {
-        throw new Error(payload?.message || window.linnmsToastMessage("js.dashboard.activity-invalid"));
+        throw new Error(payload?.message || window.linnmsToastMessage("validation.invalid", { field: "Respons aktivitas" }));
       }
       page = Math.max(1, Number(payload.activity_page || 1));
       if (applyPayload(payload) && resetScroll) resultsHost.scrollTop = 0;

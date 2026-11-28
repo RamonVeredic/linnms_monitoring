@@ -67,7 +67,7 @@ function handle_user_action(string $action): bool
         $id = valid_positive_id($_POST['user_id'] ?? null);
         $password = (string)($_POST['password'] ?? '');
         if ($id === null || $password === '') {
-            flash('error', toast_message('user.password-input-invalid'));
+            flash('error', validation_invalid_message('User/password'));
             redirect('?page=dashboard');
         }
         $result = linnms_user_action_request($uid, $action, ['user_id' => $id, 'password' => $password]);
@@ -111,7 +111,7 @@ function handle_user_action(string $action): bool
     require_admin_role();
     $id = valid_positive_id($_POST['user_id'] ?? null);
     if ($id === null) {
-        flash('error', toast_message('user.invalid'));
+        flash('error', validation_invalid_message('Akun pengguna'));
         redirect(public_page_url('settings-admin') . '#user-limits');
     }
     $data = ['user_id' => $id];

@@ -84,7 +84,6 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
     $activeScan = isset($active[$id]);
     $scanRow = is_array($statuses[(string)$id] ?? null) ? $statuses[(string)$id] : [];
     $scanStatus = (string)($scanRow['status'] ?? '');
-    $scanError = (string)($scanRow['last_error'] ?? '');
     $seenAt = trim((string)($olt['system_seen_at'] ?? ''));
     $hasSynced = $seenAt !== '';
     $overdue = !$activeScan && $monitoringPhase === '' && !empty($olt['driver_supported']) && dashboard_sync_overdue(
@@ -114,7 +113,7 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
             'value' => $id,
             'disabled' => $activeScan,
             'discovery' => true,
-            'title' => 'Jalankan Fast, Middle, dan Low Sync',
+            'title' => 'Pindai OLT',
         ];
     }
 
@@ -145,7 +144,7 @@ function dashboard_olt_row(array $olt, int $number, array $active, array $status
         'model' => display_model_chars($olt['model'] ?? ''),
         'system_name' => trim((string)($olt['system_name'] ?? '')),
         'row_url' => public_page_url('view-olt', ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, $seenAt, $scanError, $scanProgress, $scanPhase)
+        'sync' => dashboard_sync_state($hasSynced, $pending, $failed, $activeScan, $seenAt, $scanProgress, $scanPhase)
             + [
                 'monitoring_phase' => $monitoringPhase,
                 'overdue' => $isSnmp && $overdue && !$failed,
@@ -180,7 +179,7 @@ function dashboard_snmp_row(array $device, int $number, array $group, int $syncI
         'model' => display_model_chars($device['model'] ?? ''),
         'system_name' => trim((string)($device['system_name'] ?? '')),
         'row_url' => public_page_url((string)$group['page'], ['id' => $id]),
-        'sync' => dashboard_sync_state($hasSynced, $supported && $pending, false, false, $seenAt, ''),
+        'sync' => dashboard_sync_state($hasSynced, $supported && $pending, false, false, $seenAt),
         'connections' => $connections,
         'scan' => $supported ? [
             'action' => 'sync_snmp_device',
@@ -207,13 +206,13 @@ function dashboard_device_delete_action(int $id): array
     ];
 }
 
-function dashboard_sync_state(bool $hasSynced, bool $pending, bool $failed, bool $activeScan, string $seenAt, string $lastError, int $progress = 0, string $phase = ''): array
+function dashboard_sync_state(bool $hasSynced, bool $pending, bool $failed, bool $activeScan, string $seenAt, int $progress = 0, string $phase = ''): array
 {
     return [
         'pending' => $pending,
         'active' => $activeScan,
         'failed' => $failed,
-        'error' => $failed ? ($lastError !== '' ? $lastError : 'Sinkronisasi gagal') : '',
+        'error' => $failed ? toast_message('olt.scan-failed') : '',
         'has_synced' => $hasSynced,
         'seen_at' => $seenAt,
         'time' => $hasSynced ? dashboard_sync_time($seenAt) : '',
