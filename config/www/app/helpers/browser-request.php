@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 function linnms_browser_security_settings(): array
 {
-    return require '/config/app/config/service.php';
+    return require '/config/app/settings/service.php';
 }
 
 function linnms_browser_origin(string $value): ?array

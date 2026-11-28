@@ -10,9 +10,9 @@ function toast_message_catalog(): array
     $messages = [];
     $root = realpath(LINNMS_UI_ROOT) ?: LINNMS_UI_ROOT;
     $paths = array_unique([
-        '/opt/linnms/config-seed/toats_message.txt',
-        dirname($root) . '/app/config/toats_message.txt',
-        '/config/app/config/toats_message.txt',
+        '/opt/linnms/settings-seed/toats_message.txt',
+        dirname($root) . '/app/settings/toats_message.txt',
+        '/config/app/settings/toats_message.txt',
     ]);
     foreach ($paths as $path) {
         if (!is_readable($path)) continue;
